@@ -39,8 +39,8 @@ def resource(*parts):
 # groups tags never pulls the 100MB the sampler needs.
 BUNDLE = "resources-v1.tar.gz"
 BUNDLE_TAG = "data-v1.0.0"
-BUNDLE_SHA256 = ("1be30dfe4b55ad76737889ecb4eefee6"
-                 "8ec44435aa18077c828075f3e299d1c7")
+BUNDLE_SHA256 = ("45e460b7e7a9d04ef0f7fdfe8c3b7639"
+                 "f9c0c4aa338171493d6a9f035c472c13")
 
 
 def bundled(*parts):

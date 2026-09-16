@@ -16,6 +16,11 @@ by playground/tag-conflict-filter/precompute_copyright.py.
 The mask removes candidates only. Signature tags the prompt itself
 carries are references, never candidates, so asking for a character by
 spelling out her design still works with the filter on.
+
+resources/copyright_blacklist.txt adds the tags the statistics cannot
+justify -- near-misses under the thresholds, and tags a checkpoint
+pulls toward an owner the corpus does not. It is meant to be edited,
+and an edited copy is never overwritten.
 """
 
 try:
@@ -56,9 +61,26 @@ class Copyright:
                | ((data["copy_score"].astype(np.float64) >= COPY_SHARE)
                   & (data["copy_lift"].astype(np.float64) >= COPY_LIFT)))
         table = {str(t): bool(s) for t, s in zip(data["tags"], sig)}
+        extra = _extra_tags()
         self.mask = np.fromiter(
-            (table.get(t, False) for t in vocab),
+            (table.get(t, False) or t.replace("_", " ") in extra
+             for t in vocab),
             dtype=bool, count=len(vocab))
+
+
+def _extra_tags():
+    """The hand-kept list, as normalized spaced names; missing file = empty."""
+    tags = set()
+    try:
+        with open(artifact.bundled("copyright_blacklist.txt"),
+                  encoding="utf-8") as fh:
+            for line in fh:
+                tag = line.split("#", 1)[0].strip().lower().replace("_", " ")
+                if tag:
+                    tags.add(tag)
+    except Exception:
+        pass
+    return tags
 
 
 @artifact.lazy

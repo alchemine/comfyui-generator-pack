@@ -25,7 +25,7 @@ carries objects and compositions on its one share.
 | `lift_threshold` | The output contradicts the prompt in ways the data merely discourages. `0.1` catches only pairs that essentially never co-occur |
 | `blacklist` | A regex over the candidates (`hair\|eyes`, `^black `). `<color>` expands from `resources/wildcards.yaml`. Filters candidates, so `n` still holds |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | The usual sampling knobs. `temperature 0` is argmax |
-| `filter_copyright` | On by default: drops candidates owned by one character or franchise — the tags that turn a library into Patchouli's library. Your own tags are never dropped |
+| `filter_copyright` | On by default: drops candidates owned by one character or franchise — the tags that turn a library into Patchouli's library. `resources/copyright_blacklist.txt` adds the ones the statistics miss, and is meant to be edited. Your own tags are never dropped |
 | `order_tags` | On by default: the added tags come back grouped by kind — subject, body, expressions, pose, clothes, scene. Off keeps the draw order. The input prompt is never reordered |
 
 Every widget carries its own tooltip — hover it with the node in front of you.
@@ -67,7 +67,7 @@ lead. `cap` trims each group, colours first.
 Nothing ships in the repository. Every table, label file and list downloads into `resources/` the first time a
 node needs it, each pinned by sha256 — the small files as one archive, the statistics tables (up to 100MB)
 separately, so a workflow that only groups tags never pulls what the sampler needs. A file already on disk is
-never re-fetched, so an edited `solo_conflict.txt` or `wildcards.yaml` stays yours.
+never re-fetched, so an edited `solo_conflict.txt`, `copyright_blacklist.txt` or `wildcards.yaml` stays yours.
 
 ## License
 
