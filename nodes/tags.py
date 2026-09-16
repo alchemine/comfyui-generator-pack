@@ -1382,7 +1382,7 @@ class GroupTags(BasePrompt):
             "cap": ("INT", {"default": 0, "min": 0, "max": 100}),
             "prefix_tags": ("STRING", {"default": PREFIX_TAGS_DEFAULT}),
             "special_pattern": ("STRING", {"default": ""}),
-            "category_order": ("STRING", {"default": ""}),
+            "category_order": ("STRING", {"default": "characters, body, expressions, pose, clothes, objects, background, compositions"}),
         },
     }
     RETURN_TYPES = ("STRING",)
