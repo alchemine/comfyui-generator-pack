@@ -81,6 +81,12 @@ CATEGORY_GROUPS = {
 # toward animal-eared characters the prompt did not ask for, and etc is
 # the unlabelled remainder, too scattershot to steer with.
 
+# the order order_tags puts the added tags in: who is in the picture,
+# their body and face, what they are doing, wearing, holding, and where.
+# A constant rather than a widget -- the category names are internal
+# vocabulary nobody should have to memorise to sort a prompt.
+CATEGORY_ORDER = "characters, body, expressions, pose, clothes, objects, background, compositions"
+
 # widget value meaning "allowed, no cap"; 0 turns the category off and a
 # fraction caps the category's share of the output (0.3 = 30% of n)
 CATEGORY_UNCAPPED = -1.0
@@ -1068,6 +1074,15 @@ class TagsGenerator(BasePrompt):
                            "sampler just made, which is why the node asks "
                            "for replacements until n survive.",
             }),
+            "order_tags": ("BOOLEAN", {
+                "default": True,
+                "tooltip": "Return the added tags grouped by kind -- "
+                           "subject, body, expressions, pose, clothes, "
+                           "scene -- so the same settings put the same "
+                           "kinds of tag in the same place. Off keeps the "
+                           "order they were drawn. The input prompt is "
+                           "never reordered.",
+            }),
             "blacklist": ("STRING", {
                 "default": "", "multiline": False,
                 "tooltip": "Regex matched against each candidate tag in "
@@ -1085,17 +1100,6 @@ class TagsGenerator(BasePrompt):
                             "temperature is 0, where the seed does nothing "
                             "at all."},
             ),
-            "category_order": ("STRING", {
-                "default": "", "multiline": False,
-                "tooltip": "Comma separated category names -- characters, "
-                           "body, expressions, pose, clothes, background, "
-                           "compositions, objects, creatures, etc. The "
-                           "added tags come back in that order instead of "
-                           "the order they were drawn, so the same "
-                           "settings put the same kinds of tag in the same "
-                           "place. Empty keeps the draw order; the input "
-                           "prompt is never reordered.",
-            }),
         },
     }
     RETURN_TYPES = ("STRING",)
@@ -1196,7 +1200,7 @@ class TagsGenerator(BasePrompt):
         filter_subtags: bool = True,
         momentum: float = DEFAULT_MOMENTUM,
         repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
-        category_order: str = "",
+        order_tags: bool = True,
         **categories: float,
     ) -> tuple[str]:
         """Append companion tags to a prompt."""
@@ -1254,7 +1258,8 @@ class TagsGenerator(BasePrompt):
         kept = cls._fill(n, draw, process, base, set(base_tags))
         if not kept:
             return (base,)
-        kept = _sort_by_category(kept, category_order, lambda t: (t,))
+        kept = _sort_by_category(kept, CATEGORY_ORDER if order_tags else "",
+                                 lambda t: (t,))
         return (", ".join(base_tags + kept),)
 
     @classmethod
@@ -1276,7 +1281,7 @@ class TagsGenerator(BasePrompt):
         filter_subtags: bool = True,
         momentum: float = DEFAULT_MOMENTUM,
         repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
-        category_order: str = "",
+        order_tags: bool = True,
         **categories: float,
     ) -> tuple:
         momentum, repetition_penalty = _legacy_knobs(
@@ -1284,7 +1289,7 @@ class TagsGenerator(BasePrompt):
         return (text, n, lift_threshold, rating, temperature, top_k, top_p,
                 min_p, seed, min_count, blacklist, replace_underscores,
                 filter_tags, filter_subtags, momentum,
-                repetition_penalty, category_order,
+                repetition_penalty, order_tags,
                 tuple(sorted(categories.items())))
 
 
@@ -1382,7 +1387,7 @@ class GroupTags(BasePrompt):
             "cap": ("INT", {"default": 0, "min": 0, "max": 100}),
             "prefix_tags": ("STRING", {"default": PREFIX_TAGS_DEFAULT}),
             "special_pattern": ("STRING", {"default": ""}),
-            "category_order": ("STRING", {"default": "characters, body, expressions, pose, clothes, objects, background, compositions"}),
+            "order_tags": ("BOOLEAN", {"default": True}),
         },
     }
     RETURN_TYPES = ("STRING",)
@@ -1454,7 +1459,7 @@ class GroupTags(BasePrompt):
         cap: int = 0,
         prefix_tags: str = PREFIX_TAGS_DEFAULT,
         special_pattern: str = "",
-        category_order: str = "",
+        order_tags: bool = True,
     ) -> tuple[str]:
         """Cap each group, order them, then lay them out one per line."""
         tags = [t.strip() for t in cls.split_tags(text) if t.strip()]
@@ -1473,7 +1478,8 @@ class GroupTags(BasePrompt):
                 lines.append(specials)
                 tags = [t for t in tags if t not in specials]
 
-        for group in cls._order_groups(cls._group(tags), category_order):
+        for group in cls._order_groups(cls._group(tags),
+                               CATEGORY_ORDER if order_tags else ""):
             lines.append(cls._cap_group(group, cap) if cap > 0 else group)
         return (",\n".join(", ".join(line) for line in lines if line),)
 
@@ -1485,9 +1491,9 @@ class GroupTags(BasePrompt):
         cap: int = 0,
         prefix_tags: str = PREFIX_TAGS_DEFAULT,
         special_pattern: str = "",
-        category_order: str = "",
+        order_tags: bool = True,
     ) -> tuple:
         return (text, special_first, cap, prefix_tags, special_pattern,
-                category_order)
+                order_tags)
 
 

@@ -609,7 +609,7 @@
     0,
     "fur-trimmed, lace-trimmed, ribbon-trimmed, frilled",
     "",
-    "characters, body, expressions, pose, clothes, objects, background, compositions"
+    true
    ]
   },
   {
@@ -939,10 +939,10 @@
     true,
     true,
     true,
+    true,
     "",
     2,
-    "fixed",
-    ""
+    "fixed"
    ]
   },
   {

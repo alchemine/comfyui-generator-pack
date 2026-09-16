@@ -25,7 +25,7 @@ carries objects and compositions on its one share.
 | `lift_threshold` | The output contradicts the prompt in ways the data merely discourages. `0.1` catches only pairs that essentially never co-occur |
 | `blacklist` | A regex over the candidates (`hair\|eyes`, `^black `). `<color>` expands from `resources/wildcards.yaml`. Filters candidates, so `n` still holds |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | The usual sampling knobs. `temperature 0` is argmax |
-| `category_order` | The added tags should come back in the same order by kind every time |
+| `order_tags` | On by default: the added tags come back grouped by kind — subject, body, expressions, pose, clothes, scene. Off keeps the draw order. The input prompt is never reordered |
 
 Every widget carries its own tooltip — hover it with the node in front of you.
 
