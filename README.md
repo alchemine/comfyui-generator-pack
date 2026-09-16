@@ -1,4 +1,4 @@
-# ComfyUI-Tags-Generator
+# ComfyUI-Generator-Pack
 
 [English](README.md) | [한국어](README_ko.md)
 
@@ -37,18 +37,18 @@ first run, and it is meant to be edited: your copy is never overwritten.
 
 ## Example
 
-[`workflows/comfyui-tags-generator-workflow.json`](workflows/comfyui-tags-generator-workflow.json) — type two tags, watch them grow into a prompt, and render it.
+[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — type two tags, watch them grow into a prompt, and render it.
 
 ## Installation
 
-Search for **ComfyUI-Tags-Generator** in ComfyUI Manager, or:
+Search for **ComfyUI-Generator-Pack** in ComfyUI Manager, or:
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/alchemine/comfyui-tags-generator
+git clone https://github.com/alchemine/comfyui-generator-pack
 ```
 
-## Nodes (`TagsGenerator/Tags`)
+## Nodes (`GeneratorPack/Tags`)
 
 **Tags Generator** — the sampler above.
 

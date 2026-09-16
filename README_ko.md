@@ -1,4 +1,4 @@
-# ComfyUI-Tags-Generator
+# ComfyUI-Generator-Pack
 
 [English](README.md) | [한국어](README_ko.md)
 
@@ -36,18 +36,18 @@
 
 ## 예시
 
-[`workflows/comfyui-tags-generator-workflow.json`](workflows/comfyui-tags-generator-workflow.json) — 태그 두 개를 넣고, 프롬프트로 자라는 걸 보고, 그대로 렌더합니다.
+[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — 태그 두 개를 넣고, 프롬프트로 자라는 걸 보고, 그대로 렌더합니다.
 
 ## 설치
 
-ComfyUI Manager에서 **ComfyUI-Tags-Generator**를 검색하거나:
+ComfyUI Manager에서 **ComfyUI-Generator-Pack**를 검색하거나:
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/alchemine/comfyui-tags-generator
+git clone https://github.com/alchemine/comfyui-generator-pack
 ```
 
-## 노드 (`TagsGenerator/Tags`)
+## 노드 (`GeneratorPack/Tags`)
 
 **Tags Generator** — 위에서 설명한 샘플러.
 

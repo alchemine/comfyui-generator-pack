@@ -16,7 +16,7 @@ try:
 except ImportError:  # flat import (playground scripts put nodes/lib on sys.path)
     from utils import RESOURCES_DIR, get_logger
 
-RELEASE = ("https://github.com/alchemine/comfyui-tags-generator"
+RELEASE = ("https://github.com/alchemine/comfyui-generator-pack"
            "/releases/download/%s/%s")
 
 

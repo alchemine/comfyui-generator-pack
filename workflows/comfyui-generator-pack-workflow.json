@@ -71,7 +71,7 @@
     }
    ],
    "properties": {
-    "cnr_id": "comfyui-tags-generator",
+    "cnr_id": "comfyui-generator-pack",
     "ver": "1.0.0",
     "Node name for S&R": "TagsGenerator"
    },
@@ -141,7 +141,7 @@
     }
    ],
    "properties": {
-    "cnr_id": "comfyui-tags-generator",
+    "cnr_id": "comfyui-generator-pack",
     "ver": "1.0.0",
     "Node name for S&R": "GroupTags"
    },

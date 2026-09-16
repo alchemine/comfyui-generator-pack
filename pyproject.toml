@@ -1,5 +1,5 @@
 [project]
-name = "comfyui-tags-generator"
+name = "comfyui-generator-pack"
 description = """Danbooru-based tags generator and conflict filter"""
 
 version = "1.0.0"
@@ -8,10 +8,10 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.urls]
-Repository = "https://github.com/alchemine/comfyui-tags-generator"
-"Bug Tracker" = "https://github.com/alchemine/comfyui-tags-generator/issues"
+Repository = "https://github.com/alchemine/comfyui-generator-pack"
+"Bug Tracker" = "https://github.com/alchemine/comfyui-generator-pack/issues"
 
 [tool.comfy]
 PublisherId = "alchemine"
-DisplayName = "ComfyUI-Tags-Generator"
+DisplayName = "ComfyUI-Generator-Pack"
 Icon = ""

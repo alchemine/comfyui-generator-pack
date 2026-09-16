@@ -9,7 +9,7 @@ from .nodes.tags import (
 
 
 NODE_CLASS_MAPPINGS = {
-    # TagsGenerator/Tags #############################################################
+    # GeneratorPack/Tags #############################################################
     "TagsGenerator": TagsGenerator,
     "TagsConflictFilter": TagsConflictFilter,
     "ClassifyTags": ClassifyTags,
@@ -18,7 +18,7 @@ NODE_CLASS_MAPPINGS = {
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    # TagsGenerator/Tags #############################################################
+    # GeneratorPack/Tags #############################################################
     "TagsGenerator": "Tags Generator",
     "TagsConflictFilter": "Tags Conflict Filter",
     "ClassifyTags": "Classify Tags",

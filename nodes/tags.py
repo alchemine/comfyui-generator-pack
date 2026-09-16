@@ -1,4 +1,4 @@
-"""Nodes in TagsGenerator/Tags.
+"""Nodes in GeneratorPack/Tags.
 
 Four classes are registered as nodes -- TagsGenerator, TagsConflictFilter,
 ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
@@ -660,7 +660,7 @@ class TagsConflictFilter(BasePrompt):
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("processed_text", "table")
     FUNCTION = "execute"
-    CATEGORY = "TagsGenerator/Tags"
+    CATEGORY = "GeneratorPack/Tags"
 
     @classmethod
     @exception_handler
@@ -1100,7 +1100,7 @@ class TagsGenerator(BasePrompt):
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
     FUNCTION = "execute"
-    CATEGORY = "TagsGenerator/Tags"
+    CATEGORY = "GeneratorPack/Tags"
 
     # each top-up round asks the sampler for more tags; bounded so an
     # over-aggressive filter cannot spin here forever
@@ -1311,7 +1311,7 @@ class ClassifyTags(BasePrompt):
     RETURN_TYPES = ("STRING",) * len(BUCKETS)
     RETURN_NAMES = BUCKETS
     FUNCTION = "execute"
-    CATEGORY = "TagsGenerator/Tags"
+    CATEGORY = "GeneratorPack/Tags"
 
     @classmethod
     @exception_handler
@@ -1387,7 +1387,7 @@ class GroupTags(BasePrompt):
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("processed_text",)
     FUNCTION = "execute"
-    CATEGORY = "TagsGenerator/Tags"
+    CATEGORY = "GeneratorPack/Tags"
 
     @classmethod
     def _cap_prefixes(cls, tags: list[str], cap: int, prefixes: list[str]) -> list[str]:

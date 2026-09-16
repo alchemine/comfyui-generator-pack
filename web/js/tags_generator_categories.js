@@ -154,7 +154,7 @@ function makeRow(node, boolWidget, shareWidget) {
 }
 
 app.registerExtension({
-    name: "alchemine.tagsGenerator.CategoryRows",
+    name: "alchemine.generatorPack.CategoryRows",
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData.name !== NODE) return;
         const onNodeCreated = nodeType.prototype.onNodeCreated;
