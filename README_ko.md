@@ -23,7 +23,7 @@
 | `momentum` | 태그들이 서로 무관해 보일 때(올리기), 한 장면이 제멋대로 굴러갈 때(내리기) |
 | `repetition_penalty` | 같은 얘기 바꿔 쓰기에 예산이 절반 나갈 때 — `blue skin`, `pale skin`, `dark skin` |
 | `lift_threshold` | 데이터가 "드물게 한다" 정도인 조합까지 막고 싶을 때. `0.1`은 사실상 함께 나오지 않는 쌍만 잡습니다 |
-| `blacklist` | 후보 태그에 걸리는 정규식(`hair\|eyes`, `^black `). `<color>`는 [`resources/wildcards.yaml`](resources/wildcards.yaml)에서 펼쳐집니다. 결과가 아니라 후보를 걸러 `n`은 그대로 채워집니다 |
+| `blacklist` | 후보 태그에 걸리는 정규식(`hair\|eyes`, `^black `). `<color>`는 `resources/wildcards.yaml`에서 펼쳐집니다. 결과가 아니라 후보를 걸러 `n`은 그대로 채워집니다 |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | 익숙한 샘플링 손잡이. `temperature 0`은 argmax |
 | `category_order` | 추가된 태그가 매번 같은 종류 순서로 돌아오길 바랄 때 |
 
@@ -32,7 +32,7 @@
 위젯 없이 알아서 도는 것이 셋 있습니다. 빈 프롬프트는 코퍼스가 할 말이 많은 앵커(`beach`, `moon`)를 뽑아 거기서
 장면을 키웁니다. 가중치가 0 이하인 태그는 주장이 아니라 반대로 작용합니다 — `(light particles:-1.2)`는 그 태그와
 함께 다니는 것들까지 밀어냅니다. 1인 프롬프트에는 두 번째 인물이 필요한 태그가 차단되며, 목록은
-[`resources/solo_conflict.txt`](resources/solo_conflict.txt)에서 직접 고치면 됩니다.
+`resources/solo_conflict.txt`에서 직접 고치면 됩니다. 첫 실행 후 생기는 파일이고, 고친 내용은 덮어쓰지 않습니다.
 
 ## 설치
 

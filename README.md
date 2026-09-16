@@ -23,7 +23,7 @@ carries objects and compositions on its one share.
 | `momentum` | The tags have nothing to do with each other (raise), or read as one runaway scene (lower) |
 | `repetition_penalty` | Half the draw goes on respelling one idea — `blue skin`, `pale skin`, `dark skin` |
 | `lift_threshold` | The output contradicts the prompt in ways the data merely discourages. `0.1` catches only pairs that essentially never co-occur |
-| `blacklist` | A regex over the candidates (`hair\|eyes`, `^black `). `<color>` expands from [`resources/wildcards.yaml`](resources/wildcards.yaml). Filters candidates, so `n` still holds |
+| `blacklist` | A regex over the candidates (`hair\|eyes`, `^black `). `<color>` expands from `resources/wildcards.yaml`. Filters candidates, so `n` still holds |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | The usual sampling knobs. `temperature 0` is argmax |
 | `category_order` | The added tags should come back in the same order by kind every time |
 
@@ -32,8 +32,8 @@ Every widget carries its own tooltip — hover it with the node in front of you.
 Three things happen without a widget for them. An empty prompt draws an anchor the corpus has plenty to say
 about (`beach`, `moon`) and grows a scene from it. A weight at or below zero reverses a tag instead of
 asserting it: `(light particles:-1.2)` costs light particles and what travels with them. A one-person prompt
-vetoes the tags that need a second character — the list is [`resources/solo_conflict.txt`](resources/solo_conflict.txt),
-and it is meant to be edited.
+vetoes the tags that need a second character — the list is `resources/solo_conflict.txt`, on disk after the
+first run, and it is meant to be edited: your copy is never overwritten.
 
 ## Installation
 
