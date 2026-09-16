@@ -26,30 +26,35 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 _PATH = artifact.resource("copyright_v1.npz")
 # not committed (370KB); fetched from the data release on first use
 _URL = artifact.url_for("data-v1.0.0", "copyright_v1.npz")
-_SHA256 = ("1b719be52f00f7f00280d1f7c4d67e04"
-           "dc2ddce7e2f1ba383cd58bbd24b2df7d")
+_SHA256 = ("9539fcd6a0271dd4234a244114aabbd5"
+           "bdf4fe823de53a2cd56f9ecdb931f31e")
 
-# A tag is a signature when one character owns at least CHAR_THRESHOLD
-# of its posts, or one franchise COPY_THRESHOLD. Calibrated on labeled
-# tags (build log table): the character axis sits above aqua hair
-# (0.45, half of it Miku but still a colour word) and below bat wings
-# (0.55, Remilia's); the franchise axis above serafuku (0.36 kancolle)
-# and witch hat (0.40 touhou), and below mob cap (0.97).
-CHAR_THRESHOLD = 0.5
-COPY_THRESHOLD = 0.6
+# A tag is a signature only when both halves of the evidence agree,
+# the same both-or-neither structure as the veto's E_MIN gate: the
+# share says the owner dominates the tag, the lift says that is not
+# just the owner dominating the corpus. Share alone ate geta and
+# no headwear (0.60/0.66 touhou -- volume, x6 lift); lift alone cannot
+# tell mob cap (x9, the touhou ceiling) from ascot (x5), and explodes
+# for niche owners (bodystocking x158 on one Genshin character).
+# Calibrated on labeled tags -- the build log prints the table.
+CHAR_SHARE = 0.5    # above aqua hair 0.45 (Miku), below bat wings 0.55
+CHAR_LIFT = 20.0    # true signatures sit at x64-x222
+COPY_SHARE = 0.6    # above serafuku 0.36, witch hat 0.40
+COPY_LIFT = 8.0     # geta/no headwear x6 stay; mob cap x9, umamusume x66 go
 
 
 class Copyright:
     """Boolean mask over the caller's vocabulary: True = signature tag."""
 
-    def __init__(self, vocab, path=_PATH,
-                 char_threshold=CHAR_THRESHOLD, copy_threshold=COPY_THRESHOLD):
+    def __init__(self, vocab, path=_PATH):
         import numpy as np
         if path == _PATH:
-            artifact.ensure(path, _URL, _SHA256, "Copyright", "370KB")
+            artifact.ensure(path, _URL, _SHA256, "Copyright", "2MB")
         data = np.load(path, allow_pickle=False)
-        sig = ((data["char_score"].astype(np.float64) >= char_threshold)
-               | (data["copy_score"].astype(np.float64) >= copy_threshold))
+        sig = (((data["char_score"].astype(np.float64) >= CHAR_SHARE)
+                & (data["char_lift"].astype(np.float64) >= CHAR_LIFT))
+               | ((data["copy_score"].astype(np.float64) >= COPY_SHARE)
+                  & (data["copy_lift"].astype(np.float64) >= COPY_LIFT)))
         table = {str(t): bool(s) for t, s in zip(data["tags"], sig)}
         self.mask = np.fromiter(
             (table.get(t, False) for t in vocab),
