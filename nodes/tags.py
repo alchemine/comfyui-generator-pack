@@ -55,9 +55,9 @@ RATINGS = ("general", "sensitive", "questionable", "explicit")
 # error.
 CATEGORY_DEFAULTS = {
     "characters": 0.1,
-    "pose": 0.2,
-    "expressions": 0.1,
-    "body": 0.3,
+    "pose": 0.3,
+    "expressions": 0.2,
+    "body": 0.1,
     "clothes": 0.2,
     "background": 0.1,
 }
@@ -793,8 +793,9 @@ class TagsGenerator(BasePrompt):
     back 7 pose and 3 expressions, because switching a category off
     hands its share to the ones still on rather than shrinking the
     result. -1 means allowed with no share of its own, 0 switches the
-    category off, and the defaults -- body 0.3, pose 0.2, clothes 0.2,
-    expressions 0.1, background 0.1 -- balance the node out of the box.
+    category off, and the defaults -- pose 0.3, clothes 0.2,
+    expressions 0.2, characters 0.1, body 0.1, background 0.1 -- balance
+    the node out of the box.
 
     Counts are split by largest remainder, so they add up to exactly
     what was asked for, and they apply just as well at n 0, where what
@@ -936,7 +937,7 @@ class TagsGenerator(BasePrompt):
                            "'bar_(place)', not 'bar'.",
             }),
             "n": ("INT", {
-                "default": 20, "min": 0, "max": 100,
+                "default": 15, "min": 0, "max": 100,
                 "tooltip": "How many tags to add, counted after "
                            "post-processing. 0 = auto: the length is drawn "
                            "from the corpus and generation also stops early "
@@ -1024,7 +1025,7 @@ class TagsGenerator(BasePrompt):
                            "over weaker candidates.",
             }),
             "top_k": ("INT", {
-                "default": 50, "min": 0, "max": 500,
+                "default": 0, "min": 0, "max": 500,
                 "tooltip": "Sample from this many best candidates per step. "
                            "0 = no limit. Ignored at temperature 0.",
             }),
@@ -1036,7 +1037,7 @@ class TagsGenerator(BasePrompt):
                            "sampling back into greedy picking.",
             }),
             "min_p": ("FLOAT", {
-                "default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01,
+                "default": 0.05, "min": 0.0, "max": 1.0, "step": 0.01,
                 "tooltip": "Drop candidates below this fraction of the best "
                            "candidate's probability. 0 = off.",
             }),
