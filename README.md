@@ -38,7 +38,9 @@ first run, and it is meant to be edited: your copy is never overwritten.
 
 ## Example
 
-[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — type two tags, watch them grow into a prompt, and render it.
+[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — one tag in, a whole scene out. The image below carries the workflow in its metadata — drop it onto the canvas.
+
+![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
 ## Installation
 

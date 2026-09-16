@@ -37,7 +37,9 @@
 
 ## 예시
 
-[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — 태그 두 개를 넣고, 프롬프트로 자라는 걸 보고, 그대로 렌더합니다.
+[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — 태그 하나가 장면 하나로 자랍니다. 아래 이미지는 메타데이터에 워크플로를 담고 있어서 캔버스에 끌어다 놓으면 그대로 열립니다.
+
+![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
 ## 설치
 
