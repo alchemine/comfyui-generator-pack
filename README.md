@@ -35,6 +35,10 @@ asserting it: `(light particles:-1.2)` costs light particles and what travels wi
 vetoes the tags that need a second character — the list is `resources/solo_conflict.txt`, on disk after the
 first run, and it is meant to be edited: your copy is never overwritten.
 
+## Example
+
+[`workflows/comfyui-tags-generator-workflow.json`](workflows/comfyui-tags-generator-workflow.json) — type two tags, watch them grow into a prompt, and render it.
+
 ## Installation
 
 Search for **ComfyUI-Tags-Generator** in ComfyUI Manager, or:

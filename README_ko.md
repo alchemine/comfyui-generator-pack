@@ -34,6 +34,10 @@
 함께 다니는 것들까지 밀어냅니다. 1인 프롬프트에는 두 번째 인물이 필요한 태그가 차단되며, 목록은
 `resources/solo_conflict.txt`에서 직접 고치면 됩니다. 첫 실행 후 생기는 파일이고, 고친 내용은 덮어쓰지 않습니다.
 
+## 예시
+
+[`workflows/comfyui-tags-generator-workflow.json`](workflows/comfyui-tags-generator-workflow.json) — 태그 두 개를 넣고, 프롬프트로 자라는 걸 보고, 그대로 렌더합니다.
+
 ## 설치
 
 ComfyUI Manager에서 **ComfyUI-Tags-Generator**를 검색하거나:
