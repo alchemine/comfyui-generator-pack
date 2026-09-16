@@ -1074,6 +1074,15 @@ class TagsGenerator(BasePrompt):
                            "sampler just made, which is why the node asks "
                            "for replacements until n survive.",
             }),
+            "filter_copyright": ("BOOLEAN", {
+                "default": True,
+                "tooltip": "Drop candidate tags owned by one character or "
+                           "one franchise -- a tag whose posts mostly carry "
+                           "the same character (crescent hat ornament) or "
+                           "the same copyright (mini hakkero). Keeps a "
+                           "library from turning into Patchouli's library. "
+                           "Tags you typed yourself are never dropped.",
+            }),
             "order_tags": ("BOOLEAN", {
                 "default": True,
                 "tooltip": "Return the added tags grouped by kind -- "
@@ -1198,6 +1207,7 @@ class TagsGenerator(BasePrompt):
         replace_underscores: bool = True,
         filter_tags: bool = True,
         filter_subtags: bool = True,
+        filter_copyright: bool = True,
         momentum: float = DEFAULT_MOMENTUM,
         repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
         order_tags: bool = True,
@@ -1249,6 +1259,7 @@ class TagsGenerator(BasePrompt):
                 lift_th=lift_threshold,
                 momentum=momentum,
                 repetition_penalty=repetition_penalty,
+                filter_copyright=filter_copyright,
             )
 
         # the pipeline is applied to the whole prompt, so the kept tags are
@@ -1279,6 +1290,7 @@ class TagsGenerator(BasePrompt):
         replace_underscores: bool = True,
         filter_tags: bool = True,
         filter_subtags: bool = True,
+        filter_copyright: bool = True,
         momentum: float = DEFAULT_MOMENTUM,
         repetition_penalty: float = DEFAULT_REPETITION_PENALTY,
         order_tags: bool = True,
@@ -1288,7 +1300,7 @@ class TagsGenerator(BasePrompt):
             categories, momentum, repetition_penalty)
         return (text, n, lift_threshold, rating, temperature, top_k, top_p,
                 min_p, seed, min_count, blacklist, replace_underscores,
-                filter_tags, filter_subtags, momentum,
+                filter_tags, filter_subtags, filter_copyright, momentum,
                 repetition_penalty, order_tags,
                 tuple(sorted(categories.items())))
 

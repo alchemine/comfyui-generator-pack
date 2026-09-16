@@ -17,7 +17,8 @@ may be limited by category quota and rating level.
 import math
 import re
 
-from . import (artifact, tag_alias, tag_avoid, tag_category, tag_solo,
+from . import (artifact, tag_alias, tag_avoid, tag_category,
+               tag_copyright, tag_solo,
                tag_subject, tag_veto)
 from .tag_category import RATING_ORDER
 from .tag_veto import (normalize, split_prompt_tags, weight_of,
@@ -252,6 +253,7 @@ class TagSuggest:
             }
         self._labels = None          # lazy (category, rating) arrays
         self._avoid = None           # lazy avoidance table
+        self._franchise = None       # lazy copyright-signature mask
         self._blacklist = None       # (pattern, mask) of the last regex
         self._slots = None           # lazy (slot ids per tag, count)
         self._solo = None            # lazy (multi-person, male) vetoes
@@ -485,8 +487,15 @@ class TagSuggest:
             banned |= avoid.mask(ids, avoid_alpha)
         return banned
 
+    def _copyright_mask(self):
+        """Signature-tag mask, or None when the table is absent."""
+        if self._franchise is None:
+            self._franchise = tag_copyright.load_copyright(self.vocab)
+        table = self._franchise or None
+        return table.mask if table else None
+
     def _eligible(self, counts, min_count, rating, level_of, cat_of,
-                  allowed, blacklist):
+                  allowed, blacklist, filter_copyright=True):
         """Tags allowed to be drawn at all, before any context is read.
 
         Everything here is a property of the request rather than of the
@@ -502,6 +511,10 @@ class TagSuggest:
         rejected = self._blacklist_mask(blacklist)
         if rejected is not None:
             eligible &= ~rejected
+        if filter_copyright:
+            signature = self._copyright_mask()
+            if signature is not None:
+                eligible &= ~signature
         return eligible
 
     def _rating_log_weights(self, rating):
@@ -535,7 +548,8 @@ class TagSuggest:
                 categories="", blacklist="", quota_total=None,
                 avoid_alpha=tag_avoid.DEFAULT_ALPHA,
                 momentum=DEFAULT_MOMENTUM,
-                repetition_penalty=DEFAULT_REPETITION_PENALTY):
+                repetition_penalty=DEFAULT_REPETITION_PENALTY,
+                filter_copyright=True):
         """Return up to m tags (Danbooru form) that go with the inputs.
 
         One tag per step, LM-style. The step distribution is naive Bayes:
@@ -622,7 +636,8 @@ class TagSuggest:
         veto = tag_veto.load_veto()
         log_prior = self._log_prior(counts, level_of, rating)
         eligible = self._eligible(counts, min_count, rating, level_of,
-                                  cat_of, allowed, blacklist)
+                                  cat_of, allowed, blacklist,
+                                  filter_copyright)
         log_lift, log_repel = self._log_lift_sum(ids, tier)
         for j, strength in avoid:
             gain, _ = self._log_lift_sum([j], tier)
@@ -786,7 +801,8 @@ def suggest_tags(prompt, n=10, min_count=DEFAULT_MIN_COUNT,
                  lift_th=DEFAULT_LIFT_TH, quota_total=None,
                  avoid_alpha=tag_avoid.DEFAULT_ALPHA,
                  momentum=DEFAULT_MOMENTUM,
-                 repetition_penalty=DEFAULT_REPETITION_PENALTY):
+                 repetition_penalty=DEFAULT_REPETITION_PENALTY,
+                 filter_copyright=True):
     """Comma-separated prompt in, list of suggested tags (space form) out."""
     engine = load_suggest()
     inputs = split_prompt_tags(prompt)
@@ -797,7 +813,8 @@ def suggest_tags(prompt, n=10, min_count=DEFAULT_MIN_COUNT,
                           categories=categories, blacklist=blacklist,
                           quota_total=quota_total,
                           avoid_alpha=avoid_alpha, momentum=momentum,
-                          repetition_penalty=repetition_penalty)
+                          repetition_penalty=repetition_penalty,
+                          filter_copyright=filter_copyright)
     # keep emoticon tags (^_^, o_o) intact: only wordlike tags get spaces
     return [t.replace("_", " ") if re.search(r"[a-z]", t) else t
             for t in tags]
