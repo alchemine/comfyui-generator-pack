@@ -38,7 +38,7 @@ first run, and it is meant to be edited: your copy is never overwritten.
 
 ## Example
 
-[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json) — one tag in, a whole scene out. The image below carries the workflow in its metadata — drop it onto the canvas.
+[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json)
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
