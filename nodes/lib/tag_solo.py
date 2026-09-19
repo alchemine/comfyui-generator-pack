@@ -34,6 +34,7 @@ prompt says otherwise. Its negations ("no penis", "no testicles") are
 on it too: a tag naming male anatomy to deny it still puts the word in
 front of the model, which is the confusion the veto exists to avoid.
 """
+
 import re
 
 try:
@@ -56,17 +57,33 @@ _COUNT_RE = re.compile(r"^(\d+)\+?(girl|boy|other)s?$")
 # the male-anatomy veto off. "crossdressing" is deliberately absent: a
 # girl in boys' clothes is still a girl, and "otoko no ko" already
 # covers the other reading.
-_NOT_FEMALE_ONLY = frozenset({
-    "futanari", "newhalf", "otoko no ko", "male focus", "multiple boys",
-    "1boy", "2boys", "3boys", "4boys", "5boys", "6+boys",
-})
+_NOT_FEMALE_ONLY = frozenset(
+    {
+        "futanari",
+        "newhalf",
+        "otoko no ko",
+        "male focus",
+        "multiple boys",
+        "1boy",
+        "2boys",
+        "3boys",
+        "4boys",
+        "5boys",
+        "6+boys",
+    }
+)
 
 # Subject tags that put more than one character in the picture whatever
 # the counts say, so a prompt carrying one is never "alone".
-_CROWD = frozenset({
-    "solo focus", "multiple girls", "multiple boys", "multiple others",
-    "everyone",
-})
+_CROWD = frozenset(
+    {
+        "solo focus",
+        "multiple girls",
+        "multiple boys",
+        "multiple others",
+        "everyone",
+    }
+)
 
 
 @artifact.lazy
@@ -108,7 +125,8 @@ def context(tags):
     # a bare "solo" says one person without saying whose body it is, so
     # the male-anatomy veto waits for a count tag to name a girl
     female = not (tags & _NOT_FEMALE_ONLY) and any(
-        m.group(2) == "girl" for m in counted)
+        m.group(2) == "girl" for m in counted
+    )
     return True, female
 
 
@@ -121,9 +139,12 @@ def masks(vocab):
     "another" rule, which needs nothing but the spelling.
     """
     import numpy as np
+
     sections = _sections() or {}
     multi = sections.get("multi_person", frozenset())
     male = sections.get("male_anatomy", frozenset())
     spelled = [t.replace("_", " ") for t in vocab]
-    return (np.array([_ANOTHER in t or t in multi for t in spelled]),
-            np.array([t in male for t in spelled]))
+    return (
+        np.array([_ANOTHER in t or t in multi for t in spelled]),
+        np.array([t in male for t in spelled]),
+    )
