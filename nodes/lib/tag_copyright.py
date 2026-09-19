@@ -31,8 +31,7 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 _PATH = artifact.resource("copyright_v1.npz")
 # not committed (370KB); fetched from the data release on first use
 _URL = artifact.url_for("data-v1.0.0", "copyright_v1.npz")
-_SHA256 = ("9539fcd6a0271dd4234a244114aabbd5"
-           "bdf4fe823de53a2cd56f9ecdb931f31e")
+_SHA256 = "9539fcd6a0271dd4234a244114aabbd5bdf4fe823de53a2cd56f9ecdb931f31e"
 
 # A tag is a signature only when both halves of the evidence agree,
 # the same both-or-neither structure as the veto's E_MIN gate: the
@@ -42,10 +41,10 @@ _SHA256 = ("9539fcd6a0271dd4234a244114aabbd5"
 # tell mob cap (x9, the touhou ceiling) from ascot (x5), and explodes
 # for niche owners (bodystocking x158 on one Genshin character).
 # Calibrated on labeled tags -- the build log prints the table.
-CHAR_SHARE = 0.5    # above aqua hair 0.45 (Miku), below bat wings 0.55
-CHAR_LIFT = 20.0    # true signatures sit at x64-x222
-COPY_SHARE = 0.6    # above serafuku 0.36, witch hat 0.40
-COPY_LIFT = 8.0     # geta/no headwear x6 stay; mob cap x9, umamusume x66 go
+CHAR_SHARE = 0.5  # above aqua hair 0.45 (Miku), below bat wings 0.55
+CHAR_LIFT = 20.0  # true signatures sit at x64-x222
+COPY_SHARE = 0.6  # above serafuku 0.36, witch hat 0.40
+COPY_LIFT = 8.0  # geta/no headwear x6 stay; mob cap x9, umamusume x66 go
 
 
 class Copyright:
@@ -53,27 +52,31 @@ class Copyright:
 
     def __init__(self, vocab, path=_PATH):
         import numpy as np
+
         if path == _PATH:
             artifact.ensure(path, _URL, _SHA256, "Copyright", "2MB")
         data = np.load(path, allow_pickle=False)
-        sig = (((data["char_score"].astype(np.float64) >= CHAR_SHARE)
-                & (data["char_lift"].astype(np.float64) >= CHAR_LIFT))
-               | ((data["copy_score"].astype(np.float64) >= COPY_SHARE)
-                  & (data["copy_lift"].astype(np.float64) >= COPY_LIFT)))
+        sig = (
+            (data["char_score"].astype(np.float64) >= CHAR_SHARE)
+            & (data["char_lift"].astype(np.float64) >= CHAR_LIFT)
+        ) | (
+            (data["copy_score"].astype(np.float64) >= COPY_SHARE)
+            & (data["copy_lift"].astype(np.float64) >= COPY_LIFT)
+        )
         table = {str(t): bool(s) for t, s in zip(data["tags"], sig)}
         extra = _extra_tags()
         self.mask = np.fromiter(
-            (table.get(t, False) or t.replace("_", " ") in extra
-             for t in vocab),
-            dtype=bool, count=len(vocab))
+            (table.get(t, False) or t.replace("_", " ") in extra for t in vocab),
+            dtype=bool,
+            count=len(vocab),
+        )
 
 
 def _extra_tags():
     """The hand-kept list, as normalized spaced names; missing file = empty."""
     tags = set()
     try:
-        with open(artifact.bundled("copyright_blacklist.txt"),
-                  encoding="utf-8") as fh:
+        with open(artifact.bundled("copyright_blacklist.txt"), encoding="utf-8") as fh:
             for line in fh:
                 tag = line.split("#", 1)[0].strip().lower().replace("_", " ")
                 if tag:

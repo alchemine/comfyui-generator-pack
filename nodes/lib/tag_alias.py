@@ -22,6 +22,7 @@ Canonical names always win a contested alias: an alias is only filed
 when no tag actually carries that name, and when two tags claim the same
 alias the more posted one takes it.
 """
+
 import csv
 
 try:
@@ -72,8 +73,7 @@ def _load(path=_TAGS_PATH):
     groups = {}
     for alias, name in owner.items():
         groups.setdefault(name, [name]).append(alias)
-    logger.debug("[TagAlias] %d aliases over %d tags", len(owner),
-                 len(canonical))
+    logger.debug("[TagAlias] %d aliases over %d tags", len(owner), len(canonical))
     return groups
 
 
@@ -104,6 +104,9 @@ def expand_index(index):
             if member not in index:
                 index[member] = target
                 added += 1
-    logger.debug("[TagAlias] %d alias spellings added to a %d-tag index",
-                 added, len(index) - added)
+    logger.debug(
+        "[TagAlias] %d alias spellings added to a %d-tag index",
+        added,
+        len(index) - added,
+    )
     return index

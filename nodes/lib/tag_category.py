@@ -16,6 +16,7 @@ of its groups; a tag with no known group falls to the last category.
 Ratings are cumulative, so a level is a ceiling: asking for "s" admits
 g and s tags.
 """
+
 import json
 import math
 import os
@@ -39,8 +40,11 @@ class Labels:
 
     def __init__(self, directory=_DIR):
         def load(name):
-            path = (artifact.bundled("group", name) if directory == _DIR
-                    else os.path.join(directory, name))
+            path = (
+                artifact.bundled("group", name)
+                if directory == _DIR
+                else os.path.join(directory, name)
+            )
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
 
@@ -50,7 +54,7 @@ class Labels:
         self._ratings = load("ratings_v1.0.json")
 
         self.names = list(cats["priority"])
-        self._fallback = len(self.names) - 1        # "etc"
+        self._fallback = len(self.names) - 1  # "etc"
 
         children = {}
 
@@ -127,10 +131,13 @@ class Labels:
     def arrays(self, vocab):
         """(category index, rating level) arrays aligned to `vocab`."""
         import numpy as np
-        cats = np.fromiter((self.category_of(t) for t in vocab),
-                           dtype=np.int8, count=len(vocab))
-        levels = np.fromiter((self.rating_of(t) for t in vocab),
-                             dtype=np.int8, count=len(vocab))
+
+        cats = np.fromiter(
+            (self.category_of(t) for t in vocab), dtype=np.int8, count=len(vocab)
+        )
+        levels = np.fromiter(
+            (self.rating_of(t) for t in vocab), dtype=np.int8, count=len(vocab)
+        )
         return cats, levels
 
 
@@ -172,9 +179,11 @@ def parse_categories(spec, names):
         if not item:
             continue
         head, _, share = item.partition(":")
-        ranks = tuple(r for r in (rank_of.get(part.strip().lower())
-                                  for part in head.split("+"))
-                      if r is not None)
+        ranks = tuple(
+            r
+            for r in (rank_of.get(part.strip().lower()) for part in head.split("+"))
+            if r is not None
+        )
         if not ranks:
             continue
         allowed.update(ranks)
@@ -215,8 +224,9 @@ def resolve_quota(groups, total):
     caps = [int(math.floor(v)) for v in exact]
     spare = total - sum(caps)
     # hand the leftovers to whoever was rounded down hardest
-    for k in sorted(range(len(groups)), key=lambda i: exact[i] - caps[i],
-                    reverse=True)[:spare]:
+    for k in sorted(range(len(groups)), key=lambda i: exact[i] - caps[i], reverse=True)[
+        :spare
+    ]:
         caps[k] += 1
     out = {}
     for key, ((ranks, _), cap) in enumerate(zip(groups, caps)):

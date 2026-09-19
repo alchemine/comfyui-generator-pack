@@ -21,6 +21,7 @@ Judgment rules (see the notebook for the measurements behind each):
 
 lift_th is the only tuned parameter.
 """
+
 import re
 from collections import namedtuple
 from functools import lru_cache
@@ -37,17 +38,24 @@ DEFAULT_LIFT_TH = 0.1
 _VETO_PATH = artifact.resource("tag_veto.npz")
 # not committed (13MB); fetched from the data release on first use
 _VETO_URL = artifact.url_for("data-v1.0.0", "tag_veto.npz")
-_VETO_SHA256 = ("3fb3603bcadef8e8add34eb742836215e3c98264"
-                "cbcdec7007b16c2215b4bb37")
+_VETO_SHA256 = "3fb3603bcadef8e8add34eb742836215e3c98264cbcdec7007b16c2215b4bb37"
 
 
 # --- tag normalization -----------------------------------------------------
 
 _WEIGHT_RE = re.compile(r":\s*-?[0-9.]+\s*$")
 _SUBJECT_RE = re.compile(r"^\d+\+?(boy|girl|other)s?$")
-_SUBJECT_TAGS = {"solo", "solo_focus", "male_focus", "female_focus",
-                 "multiple_boys", "multiple_girls", "multiple_others",
-                 "no_humans", "everyone"}
+_SUBJECT_TAGS = {
+    "solo",
+    "solo_focus",
+    "male_focus",
+    "female_focus",
+    "multiple_boys",
+    "multiple_girls",
+    "multiple_others",
+    "no_humans",
+    "everyone",
+}
 
 
 def normalize(tag):
@@ -129,8 +137,7 @@ def split_prompt_tags(prompt):
         stripped = tag.strip()
         # a group is only worth reopening when it holds several tags;
         # "(blonde hair:1.2)" is one tag and normalize() handles it
-        if stripped.startswith("(") and stripped.endswith(")") \
-                and "," in stripped:
+        if stripped.startswith("(") and stripped.endswith(")") and "," in stripped:
             inner = _WEIGHT_RE.sub("", stripped[1:-1].strip()).strip()
             out.extend(split_prompt_tags(inner))
         elif stripped:
@@ -154,6 +161,7 @@ class TagVeto:
 
     def __init__(self, path=_VETO_PATH):
         import numpy as np
+
         self._np = np
         if path == _VETO_PATH:
             artifact.ensure(path, _VETO_URL, _VETO_SHA256, "TagVeto", "13MB")
@@ -162,8 +170,7 @@ class TagVeto:
         self.vocab = [str(t) for t in data["tags"]]
         # aliases resolve to the same row, so a prompt may spell a tag
         # any way Danbooru ever has; self.vocab stays the real names
-        self.index = tag_alias.expand_index(
-            {t: i for i, t in enumerate(self.vocab)})
+        self.index = tag_alias.expand_index({t: i for i, t in enumerate(self.vocab)})
         self._n = len(self.vocab)
 
         # exclusion pairs (lift < 0.5), stored as a sorted array of
@@ -179,9 +186,9 @@ class TagVeto:
         # the same two facts per vocabulary entry, as arrays, so
         # conflict_mask can ask them of every candidate at once
         self._starved_row = np.array(
-            [self._starved.get(t, -1) for t in self.vocab], dtype=np.int64)
-        self._is_subject_row = np.array(
-            [is_subject(t) for t in self.vocab], dtype=bool)
+            [self._starved.get(t, -1) for t in self.vocab], dtype=np.int64
+        )
+        self._is_subject_row = np.array([is_subject(t) for t in self.vocab], dtype=bool)
         self._cooc_all = data["starved_cooc"]
         self._counts_all = data["counts_all"].astype(np.float64)
         self._n_all = float(data["n_all"])
@@ -191,8 +198,7 @@ class TagVeto:
         # filter on them buys 0.06pp for a second parameter.
         self.bridges = {
             frozenset((self.vocab[i], self.vocab[j])): self.vocab[t]
-            for i, j, t in zip(data["bridge_a"], data["bridge_b"],
-                               data["bridge_t"])
+            for i, j, t in zip(data["bridge_a"], data["bridge_b"], data["bridge_t"])
         }
 
     # --- pair level -------------------------------------------------------
@@ -221,15 +227,14 @@ class TagVeto:
             a, b = b, a
         row, j = self._starved[a], self.index[b]
         observed = float(self._cooc_all[row, j])
-        expected = (self._counts_all[self.index[a]] * self._counts_all[j]
-                    / self._n_all)
+        expected = self._counts_all[self.index[a]] * self._counts_all[j] / self._n_all
         if expected < E_MIN:
             return None
         return observed / expected
 
     def conflict(self, cand, refs, lift_th=DEFAULT_LIFT_TH):
         """First reference tag that cand contradicts, or None."""
-        cand_subject = is_subject(cand)          # same for every ref
+        cand_subject = is_subject(cand)  # same for every ref
         for ref in refs:
             if ref == cand or is_subject(ref) != cand_subject:
                 continue
@@ -261,9 +266,11 @@ class TagVeto:
         # who gets judged: in the table, not the reference itself, and
         # on the same side of the subject/not-subject line -- the guard
         # conflict() applies one pair at a time
-        judged = ((cand_ids >= 0) & (cand_ids != ri)
-                  & (self._is_subject_row[np.maximum(cand_ids, 0)]
-                     == is_subject(ref)))
+        judged = (
+            (cand_ids >= 0)
+            & (cand_ids != ri)
+            & (self._is_subject_row[np.maximum(cand_ids, 0)] == is_subject(ref))
+        )
         idx = np.nonzero(judged)[0]
         if not len(idx):
             return out
@@ -273,11 +280,12 @@ class TagVeto:
         # judged over the unfiltered corpus because the solo-post matrix
         # has almost no rows for them, and either side being one sends
         # the pair that way. Everything else comes from the stored pairs.
-        lift = np.ones(len(idx), dtype=np.float64)   # 1.0 = no veto
+        lift = np.ones(len(idx), dtype=np.float64)  # 1.0 = no veto
         starved_ref = self._starved.get(ref)
         starved_j = self._starved_row[j]
-        unfiltered = (np.ones(len(idx), dtype=bool) if starved_ref is not None
-                      else starved_j >= 0)
+        unfiltered = (
+            np.ones(len(idx), dtype=bool) if starved_ref is not None else starved_j >= 0
+        )
 
         sel = np.nonzero(unfiltered)[0]
         if len(sel):
@@ -288,12 +296,10 @@ class TagVeto:
             owner = np.where(own, j[sel], ri)
             other = np.where(own, ri, j[sel])
             observed = self._cooc_all[row, other].astype(np.float64)
-            expected = (self._counts_all[owner] * self._counts_all[other]
-                        / self._n_all)
+            expected = self._counts_all[owner] * self._counts_all[other] / self._n_all
             with np.errstate(divide="ignore", invalid="ignore"):
                 # below the E gate the corpus has no sample to judge with
-                lift[sel] = np.where(expected >= E_MIN, observed / expected,
-                                     1.0)
+                lift[sel] = np.where(expected >= E_MIN, observed / expected, 1.0)
 
         rest = np.nonzero(~unfiltered)[0]
         if len(rest):
@@ -311,8 +317,7 @@ class TagVeto:
     def vocab_ids(self, tags):
         """Map tags onto this table's vocabulary once, -1 where absent."""
         np = self._np
-        return np.array([self.index.get(t, -1) for t in tags],
-                        dtype=np.int64)
+        return np.array([self.index.get(t, -1) for t in tags], dtype=np.int64)
 
     def bridge_for(self, a, b):
         """The tag naming this pair's situation, if the data has one."""
@@ -345,8 +350,11 @@ class TagVeto:
                 refs.append(tag)
                 rows.append(Verdict(raw, tag, True, "suggestion", None, None))
             else:
-                rows.append(Verdict(raw, tag, False, "suggestion", ref,
-                                    self.pair_lift(tag, ref)))
+                rows.append(
+                    Verdict(
+                        raw, tag, False, "suggestion", ref, self.pair_lift(tag, ref)
+                    )
+                )
         return rows
 
 
@@ -363,8 +371,7 @@ def veto_available():
     return bool(load_veto())
 
 
-def filter_by_veto(generated_prompt, fixed_prompt="",
-                   lift_th=DEFAULT_LIFT_TH):
+def filter_by_veto(generated_prompt, fixed_prompt="", lift_th=DEFAULT_LIFT_TH):
     """Drop generated tags that contradict the fixed tags (or earlier
     surviving generated tags). Returns (filtered_prompt, report_table).
     """
@@ -386,8 +393,13 @@ _TABLE_MAX_ROWS = 20
 
 def _table_cell(row, veto):
     if not row.keep:
-        return (row.tag, row.ref, "%.3f" % row.lift, "VETOED",
-                veto.bridge_for(row.tag, row.ref) or "-")
+        return (
+            row.tag,
+            row.ref,
+            "%.3f" % row.lift,
+            "VETOED",
+            veto.bridge_for(row.tag, row.ref) or "-",
+        )
     verdict = "kept" if row.tag in veto.index else "kept (OOV)"
     return (row.tag, "-", "-", verdict, "-")
 
@@ -401,22 +413,28 @@ def _format_table(rows, veto, lift_th):
 
     if len(cells) > _TABLE_MAX_ROWS:
         import random
+
         vetoed = [c for c in cells if c[3] == "VETOED"]
         kept = [c for c in cells if c[3] != "VETOED"]
         cells = vetoed + random.sample(
-            kept, min(max(0, _TABLE_MAX_ROWS - len(vetoed)), len(kept)))
+            kept, min(max(0, _TABLE_MAX_ROWS - len(vetoed)), len(kept))
+        )
 
     header = ("tag", "vs", "lift", "verdict", "bridge")
-    widths = [max(len(row[col]) for row in [header] + cells)
-              for col in range(len(header))]
+    widths = [
+        max(len(row[col]) for row in [header] + cells) for col in range(len(header))
+    ]
 
     def fmt(row):
         return "| %s |" % " | ".join(
             cell.rjust(w) if col == 2 else cell.ljust(w)
-            for col, (cell, w) in enumerate(zip(row, widths)))
+            for col, (cell, w) in enumerate(zip(row, widths))
+        )
 
     lines = [fmt(header), "|%s|" % "|".join("-" * (w + 2) for w in widths)]
     lines += [fmt(c) for c in cells]
-    lines.append("(veto: lift < %.2f, E >= %.0f; bridge = the tag naming "
-                 "the overlap, informational only)" % (lift_th, E_MIN))
+    lines.append(
+        "(veto: lift < %.2f, E >= %.0f; bridge = the tag naming "
+        "the overlap, informational only)" % (lift_th, E_MIN)
+    )
     return "\n".join(lines)

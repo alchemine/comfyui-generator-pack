@@ -2,25 +2,42 @@
 
 Standalone (no ComfyUI dependency) so it can be unit-tested and reused.
 """
+
 import re
 
 try:
     from . import artifact, tag_category
     from .tag_data import (
-        CLOTHES, CLOTHES_CONFLICTS, CATEGORIES, ACCESSORIES,
-        PATTERNS, PATTERN_EXCEPTIONS,
+        CLOTHES,
+        CLOTHES_CONFLICTS,
+        CATEGORIES,
+        ACCESSORIES,
+        PATTERNS,
+        PATTERN_EXCEPTIONS,
     )
 except ImportError:
     import artifact
     import tag_category
     from tag_data import (
-        CLOTHES, CLOTHES_CONFLICTS, CATEGORIES, ACCESSORIES,
-        PATTERNS, PATTERN_EXCEPTIONS,
+        CLOTHES,
+        CLOTHES_CONFLICTS,
+        CATEGORIES,
+        ACCESSORIES,
+        PATTERNS,
+        PATTERN_EXCEPTIONS,
     )
 
 MODES = ("auto", "off", "ban_all")
-CATEGORY_NAMES = ("clothes", "pose", "expression", "hair_length",
-                  "hair_style", "hair_color", "eye_color", "background")
+CATEGORY_NAMES = (
+    "clothes",
+    "pose",
+    "expression",
+    "hair_length",
+    "hair_style",
+    "hair_color",
+    "eye_color",
+    "background",
+)
 
 _WEIGHT_RE = re.compile(r":[0-9.]+\s*$")
 
@@ -62,8 +79,11 @@ def classify(tag):
     for suffix, cat, sub in PATTERNS:
         # word-boundary match; compound words (sundress, microskirt) allowed
         # for longer suffixes only, to avoid e.g. "zebra" ~ "bra".
-        if (tag == suffix or tag.endswith(" " + suffix)
-                or (len(suffix) >= 5 and tag.endswith(suffix))):
+        if (
+            tag == suffix
+            or tag.endswith(" " + suffix)
+            or (len(suffix) >= 5 and tag.endswith(suffix))
+        ):
             return (cat, sub)
     return (None, None)
 
@@ -87,8 +107,14 @@ def detect(tags):
 # but that is not a same-axis substitution -- never remove them.
 _SUBJECT_RE = re.compile(r"^\d+\+?\s*(boy|girl|other)s?$")  # 1boy, 2girls, 6+girls
 _SUBJECT_TAGS = {
-    "solo", "solo focus", "male focus", "female focus",
-    "multiple boys", "multiple girls", "no humans", "everyone",
+    "solo",
+    "solo focus",
+    "male focus",
+    "female focus",
+    "multiple boys",
+    "multiple girls",
+    "no humans",
+    "everyone",
     "loli",
 }
 
@@ -123,8 +149,8 @@ def _load_cooc():
     if _COOC is None:
         try:
             import numpy as np
-            artifact.ensure(_COOC_PATH, _COOC_URL, _COOC_SHA256,
-                            "tag_guard", "26MB")
+
+            artifact.ensure(_COOC_PATH, _COOC_URL, _COOC_SHA256, "tag_guard", "26MB")
             data = np.load(_COOC_PATH)
             tags = data["tags"].tolist()
             _COOC = {
@@ -157,6 +183,7 @@ def pair_stats(tag_a, tag_b):
         lo, hi = data["indptr"][i], data["indptr"][i + 1]
         ids = data["ids"][lo:hi]
         import numpy as np
+
         pos = np.nonzero(ids == j)[0]
         if pos.size:
             k = lo + int(pos[0])
@@ -178,8 +205,18 @@ def pair_stats(tag_a, tag_b):
 # existing workflows keep their wiring; `compositions` is appended
 # rather than inserted for the same reason.
 
-BUCKETS = ("characters", "clothes", "body", "expression", "pose",
-           "background", "objects", "nsfw", "others", "compositions")
+BUCKETS = (
+    "characters",
+    "clothes",
+    "body",
+    "expression",
+    "pose",
+    "background",
+    "objects",
+    "nsfw",
+    "others",
+    "compositions",
+)
 
 # category (categories_v1.0.json) -> bucket. creatures folds into
 # objects, which is where the old mapping put cats, dogs and elves too.
@@ -213,6 +250,7 @@ _STATIC_BUCKET = {
     "hair_color": "body",
     "background": "background",
 }
+
 
 def bucket_of(tag):
     """Return the bucket name for a normalized tag."""
@@ -279,7 +317,7 @@ _LIFT_CURVE_BASE_CLOTHES = 2.5
 def _pair_lift_th(cos, cos_th, lift_th, base):
     x = (cos - cos_th) / (1.0 - cos_th) if cos_th < 1.0 else 0.0
     x = min(max(x, 0.0), 1.0)
-    return lift_th * base ** x
+    return lift_th * base**x
 
 
 def is_conflict(tag, ref_tags, cos_th=0.75, lift_th=0.2):
@@ -299,10 +337,14 @@ def is_conflict(tag, ref_tags, cos_th=0.75, lift_th=0.2):
             continue
         cos, _ov, lift = stats
         same_cat = tag_cat is not None and tag_cat == classify(ref)[0]
-        base = (_LIFT_CURVE_BASE_CLOTHES if tag_clothes and _is_clothes(ref)
-                else _LIFT_CURVE_BASE)
+        base = (
+            _LIFT_CURVE_BASE_CLOTHES
+            if tag_clothes and _is_clothes(ref)
+            else _LIFT_CURVE_BASE
+        )
         if lift < _pair_lift_th(cos, cos_th, lift_th, base) and (
-                cos >= cos_th or same_cat):
+            cos >= cos_th or same_cat
+        ):
             return ref
     return None
 
@@ -341,9 +383,9 @@ def _static_conflict(tag, refs):
     return None
 
 
-def filter_by_conflicts(generated_prompt, locked_prompt="",
-                        cos_th=0.75, lift_th=0.2,
-                        restrict_category=None):
+def filter_by_conflicts(
+    generated_prompt, locked_prompt="", cos_th=0.75, lift_th=0.2, restrict_category=None
+):
     """Data-driven filter: drop generated tags that conflict with locked
     tags (or with earlier kept tags). No category lists required -- works
     for any tag in the co-occurrence vocabulary (e.g. day vs night).
@@ -433,17 +475,18 @@ def _format_table(rows, cos_th=0.75, lift_th=0.2):
     # th_pair is the pair's effective bar from the exponential lift
     # curve (rises with cos; larger base for clothes pairs), i.e. the
     # same bar is_conflict actually judged against.
-    cos_stars = (cos_th,
-                 cos_th + (1 - cos_th) / 3,
-                 cos_th + 2 * (1 - cos_th) / 3)
+    cos_stars = (cos_th, cos_th + (1 - cos_th) / 3, cos_th + 2 * (1 - cos_th) / 3)
     note = ""
     if len(rows) > _TABLE_MAX_ROWS:
         import random
+
         removed = [r for r in rows if r[4] == "REMOVED"]
         kept = [r for r in rows if r[4] != "REMOVED"]
         n_kept = max(0, _TABLE_MAX_ROWS - len(removed))
         note = "(showing %d of %d kept rows, sampled)" % (
-            min(n_kept, len(kept)), len(kept))
+            min(n_kept, len(kept)),
+            len(kept),
+        )
         rows = removed + random.sample(kept, min(n_kept, len(kept)))
     # lift ascending (strongest avoidance first); rows without stats last
     rows = sorted(rows, key=lambda r: float("inf") if r[3] is None else r[3])
@@ -460,8 +503,11 @@ def _format_table(rows, cos_th=0.75, lift_th=0.2):
         elif cos is None:
             cells.append((t, ref, "static", "-", status, cat))
         else:
-            base = (_LIFT_CURVE_BASE_CLOTHES if _is_clothes(t) and _is_clothes(ref)
-                    else _LIFT_CURVE_BASE)
+            base = (
+                _LIFT_CURVE_BASE_CLOTHES
+                if _is_clothes(t) and _is_clothes(ref)
+                else _LIFT_CURVE_BASE
+            )
             th_pair = _pair_lift_th(cos, cos_th, lift_th, base)
             lift_stars = (th_pair, th_pair * 2 / 3, th_pair / 3)
             cos_cell = "*" * sum(cos >= s for s in cos_stars) + "%.2f" % cos
@@ -471,12 +517,13 @@ def _format_table(rows, cos_th=0.75, lift_th=0.2):
 
     def fmt(row):
         # cos/lift right-aligned, text columns left-aligned
-        out = [row[i].rjust(widths[i]) if i in (2, 3) else row[i].ljust(widths[i])
-               for i in range(6)]
+        out = [
+            row[i].rjust(widths[i]) if i in (2, 3) else row[i].ljust(widths[i])
+            for i in range(6)
+        ]
         return "| %s |" % " | ".join(out)
 
-    lines = [fmt(header),
-             "|%s|" % "|".join("-" * (w + 2) for w in widths)]
+    lines = [fmt(header), "|%s|" % "|".join("-" * (w + 2) for w in widths)]
     lines.extend(fmt(r) for r in cells)
     if note:
         lines.append(note)
@@ -488,12 +535,14 @@ def _format_table(rows, cos_th=0.75, lift_th=0.2):
 
 # --- post filter -----------------------------------------------------------
 
+
 def cooc_available():
     return bool(_load_cooc())
 
 
-def build_ban_tags(prompt, modes=None, clothes_strict=False,
-                   use_underscores=False, extra_ban=""):
+def build_ban_tags(
+    prompt, modes=None, clothes_strict=False, use_underscores=False, extra_ban=""
+):
     """Build a ban list from the locked prompt.
 
     modes: dict {category_name: "auto"|"off"|"ban_all"} (default: all "auto")
@@ -524,10 +573,13 @@ def build_ban_tags(prompt, modes=None, clothes_strict=False,
             banned_subs.add("outerwear")
         for sub in banned_subs:
             ban.update(normalize(t) for t in CLOTHES[sub])
-        detected = sorted(t for k, v in found.items()
-                          if k.startswith("clothes/") for t in v)
-        report.append("clothes: detected %s -> banning subcategories %s"
-                      % (", ".join(detected), ", ".join(sorted(banned_subs))))
+        detected = sorted(
+            t for k, v in found.items() if k.startswith("clothes/") for t in v
+        )
+        report.append(
+            "clothes: detected %s -> banning subcategories %s"
+            % (", ".join(detected), ", ".join(sorted(banned_subs)))
+        )
 
     # other categories
     for cat, cat_tags in CATEGORIES.items():
@@ -537,8 +589,10 @@ def build_ban_tags(prompt, modes=None, clothes_strict=False,
             report.append("%s: ban_all" % cat)
         elif mode == "auto" and cat in found:
             ban.update(normalize(t) for t in cat_tags)
-            report.append("%s: detected %s -> banning rest of category"
-                          % (cat, ", ".join(sorted(found[cat]))))
+            report.append(
+                "%s: detected %s -> banning rest of category"
+                % (cat, ", ".join(sorted(found[cat])))
+            )
 
     ban -= tag_set  # never ban what the user asked for
     ban.update(split_prompt(extra_ban))
@@ -551,8 +605,9 @@ def build_ban_tags(prompt, modes=None, clothes_strict=False,
     return ", ".join(out), "\n".join(report)
 
 
-def filter_generated(generated_prompt, locked_prompt="", modes=None,
-                     clothes_strict=False):
+def filter_generated(
+    generated_prompt, locked_prompt="", modes=None, clothes_strict=False
+):
     """Remove tags from generated_prompt that conflict with locked_prompt
     (or with earlier tags in generated_prompt itself). Static category
     rules only; see filter_by_conflicts for the data-driven version.
@@ -581,8 +636,9 @@ def filter_generated(generated_prompt, locked_prompt="", modes=None,
             if cat == "clothes":
                 mode = modes["clothes"]
                 if mode != "off":
-                    present_subs = {k.split("/")[1] for k in seen
-                                    if k.startswith("clothes/")}
+                    present_subs = {
+                        k.split("/")[1] for k in seen if k.startswith("clothes/")
+                    }
                     conflict = set()
                     for s in present_subs:
                         conflict |= CLOTHES_CONFLICTS[s]
