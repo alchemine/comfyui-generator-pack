@@ -44,7 +44,7 @@ class _NodeTagFormatter(logging.Formatter):
         match = _NODE_TAG_RE.match(message)
         if match:
             node = match.group(1)
-            message = message[match.end():]
+            message = message[match.end() :]
         else:
             node = record.module
         original = (record.msg, record.args)
@@ -62,10 +62,12 @@ def get_logger(level: int = logging.INFO) -> logging.Logger:
     if not logger.handlers:
         handler = logging.StreamHandler()
         # INFO/WARNING/ERROR are the levels actually used; 7 fits the longest.
-        handler.setFormatter(_NodeTagFormatter(
-            "%(asctime)s | %(levelname)-7s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        ))
+        handler.setFormatter(
+            _NodeTagFormatter(
+                "%(asctime)s | %(levelname)-7s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
         logger.addHandler(handler)
         logger.setLevel(level)
         logger.propagate = False  # Prevent duplicate logs from root logger
@@ -83,8 +85,7 @@ def exception_handler(func):
         try:
             return func(*args, **kwargs)
         except Exception:
-            get_logger().error("unexpected error in '%s'", func.__name__,
-                               exc_info=True)
+            get_logger().error("unexpected error in '%s'", func.__name__, exc_info=True)
             raise
 
     return wrapper

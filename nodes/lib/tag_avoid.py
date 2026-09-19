@@ -29,8 +29,7 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 _PATH = artifact.resource("avoidance_v1.npz")
 # not committed (14MB); fetched from the data release on first use
 _URL = artifact.url_for("data-v1.0.0", "avoidance_v1.npz")
-_SHA256 = ("fad88158098e6e1f6a4f90cf24f85eb7"
-           "d312b1f489858a6f1c1c9ac0a3441b26")
+_SHA256 = "fad88158098e6e1f6a4f90cf24f85eb7d312b1f489858a6f1c1c9ac0a3441b26"
 
 # The table is built at alpha 0.05 and cannot be loosened past it. This
 # default is tighter: at 0.05 one pair in twenty is flagged by chance,
@@ -38,11 +37,13 @@ _SHA256 = ("fad88158098e6e1f6a4f90cf24f85eb7"
 # a tag the prompt may have wanted.
 DEFAULT_ALPHA = 0.01
 
+
 class Avoidance:
     """Directed pair lookup: which tags does this context tag avoid?"""
 
     def __init__(self, vocab, path=_PATH):
         import numpy as np
+
         if path == _PATH:
             artifact.ensure(path, _URL, _SHA256, "Avoidance", "14MB")
         data = np.load(path, allow_pickle=False)

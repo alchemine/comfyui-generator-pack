@@ -9,6 +9,7 @@ Each artifact is pinned by sha256: bump the release tag and the digest
 together, never one alone, or an old cached copy will be accepted as the
 new one.
 """
+
 import os
 
 try:
@@ -16,8 +17,7 @@ try:
 except ImportError:  # flat import (playground scripts put nodes/lib on sys.path)
     from utils import RESOURCES_DIR, get_logger
 
-RELEASE = ("https://github.com/alchemine/comfyui-generator-pack"
-           "/releases/download/%s/%s")
+RELEASE = "https://github.com/alchemine/comfyui-generator-pack/releases/download/%s/%s"
 
 
 logger = get_logger()
@@ -39,8 +39,7 @@ def resource(*parts):
 # groups tags never pulls the 100MB the sampler needs.
 BUNDLE = "resources-v1.tar.gz"
 BUNDLE_TAG = "data-v1.0.0"
-BUNDLE_SHA256 = ("b18caa14ffb77c3364e1c03ab77a43c1"
-                 "972f1745a3b1b4dd6cee61f7c352c33b")
+BUNDLE_SHA256 = "b18caa14ffb77c3364e1c03ab77a43c1972f1745a3b1b4dd6cee61f7c352c33b"
 
 
 def bundled(*parts):
@@ -56,8 +55,9 @@ def bundled(*parts):
 
     import tarfile
 
-    archive = ensure(resource(BUNDLE), url_for(BUNDLE_TAG, BUNDLE),
-                     BUNDLE_SHA256, "resources", "2MB")
+    archive = ensure(
+        resource(BUNDLE), url_for(BUNDLE_TAG, BUNDLE), BUNDLE_SHA256, "resources", "2MB"
+    )
     try:
         with tarfile.open(archive) as tar:
             tar.extractall(RESOURCES_DIR, filter="data")
@@ -102,8 +102,10 @@ def ensure(path, url, sha256, label, note=""):
     import hashlib
     import urllib.request
 
-    logger.info("[%s] downloading %s%s from %s"
-                % (label, os.path.basename(path), note and " (%s)" % note, url))
+    logger.info(
+        "[%s] downloading %s%s from %s"
+        % (label, os.path.basename(path), note and " (%s)" % note, url)
+    )
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".part"
     try:
@@ -115,7 +117,8 @@ def ensure(path, url, sha256, label, note=""):
         if digest.hexdigest() != sha256:
             raise RuntimeError(
                 "%s checksum mismatch (corrupt or stale download)"
-                % os.path.basename(path))
+                % os.path.basename(path)
+            )
         os.replace(tmp, path)
     except BaseException:
         if os.path.exists(tmp):

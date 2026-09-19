@@ -34,8 +34,7 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 _PATH = artifact.resource("subject_joint_v1.npz")
 # not committed; fetched from the data release on first use
 _URL = artifact.url_for("data-v1.0.0", "subject_joint_v1.npz")
-_SHA256 = ("7cd0b1c461e81198cb30a5ea46037eb4"
-           "a949c5a0a5ef6e1383039756b19be71e")
+_SHA256 = "7cd0b1c461e81198cb30a5ea46037eb4a949c5a0a5ef6e1383039756b19be71e"
 
 # The build runs at 1e-3. Kept the same here: unlike the avoidance
 # table, an entry only survives the build if the conjunction also
@@ -43,11 +42,13 @@ _SHA256 = ("7cd0b1c461e81198cb30a5ea46037eb4"
 # deliberate rather than a significance sweep that needs reining in.
 DEFAULT_ALPHA = 1e-3
 
+
 class SubjectJoint:
     """Which tags a pair of subject tags rules out between them."""
 
     def __init__(self, vocab, path=_PATH):
         import numpy as np
+
         if path == _PATH:
             artifact.ensure(path, _URL, _SHA256, "SubjectJoint", "260KB")
         data = np.load(path, allow_pickle=False)
@@ -87,8 +88,7 @@ class SubjectJoint:
         order = np.argsort(veto_pair, kind="stable")
         self._tag = self._tag[order]
         self._sig = self._sig[order]
-        self.indptr = np.searchsorted(veto_pair[order],
-                                      np.arange(len(pair_a) + 1))
+        self.indptr = np.searchsorted(veto_pair[order], np.arange(len(pair_a) + 1))
         self._size = len(vocab)
 
     def mask(self, ids, alpha=DEFAULT_ALPHA):
@@ -103,7 +103,7 @@ class SubjectJoint:
             for y in range(x + 1, len(present)):
                 k = self._pair_of.get((present[x], present[y]))
                 if k is None:
-                    continue                  # pair too rare to have data
+                    continue  # pair too rare to have data
                 lo, hi = self.indptr[k], self.indptr[k + 1]
                 if lo == hi:
                     continue

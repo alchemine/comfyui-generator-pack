@@ -2,10 +2,9 @@
 name = "comfyui-generator-pack"
 description = """Danbooru-based tags generator and conflict filter"""
 
-version = "1.0.0"
+version = "1.0.1"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
-dependencies = []
 
 [project.urls]
 Repository = "https://github.com/alchemine/comfyui-generator-pack"
@@ -15,3 +14,20 @@ Repository = "https://github.com/alchemine/comfyui-generator-pack"
 PublisherId = "alchemine"
 DisplayName = "ComfyUI-Generator-Pack"
 Icon = ""
+
+[tool.ruff]
+lint.select = [
+  "N805", # invalid-first-argument-name-for-method
+  "S307", # suspicious-eval-usage
+  "S102", # exec
+  "E",
+  "T",    # print-usage
+  "W",
+  # The "F" series in Ruff stands for "Pyflakes" rules, which catch various Python syntax errors and undefined names.
+  # See all rules here: https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "F",
+]
+
+lint.ignore = ["E501", "E722", "E731", "E712", "E402", "E741"]
+
+exclude = ["*.ipynb"]
