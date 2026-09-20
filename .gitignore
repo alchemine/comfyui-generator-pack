@@ -4,6 +4,5 @@ __pycache__/
 .vscode/
 
 # local only: experiments, the data build pipeline, and the data itself
-docs/
 resources/
 playground/
