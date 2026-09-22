@@ -1,7 +1,7 @@
 """Nodes in GeneratorPack/Tags.
 
-Four classes are registered as nodes -- TagsGenerator, TagsConflictFilter,
-ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
+Five classes are registered as nodes -- TagsExtractor, TagsGenerator,
+TagsConflictFilter, ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
 ReplaceUnderscores carry no node surface: TagsGenerator runs its draw
 through that pipeline before counting what survived.
 """
@@ -14,6 +14,11 @@ from functools import wraps
 
 import yaml
 
+try:
+    import googletrans
+except ImportError:  # only TagsExtractor's translate widget needs it
+    googletrans = None
+
 from .lib import artifact
 from .lib.utils import get_logger, exception_handler, standardize_prompt
 from .lib.tag_guard import (
@@ -24,6 +29,7 @@ from .lib.tag_guard import (
 )
 from .lib.tag_category import load_labels
 from .lib.tag_veto import filter_by_veto, veto_available
+from .lib.tag_search import search, format_table
 from .lib.tag_suggest import (
     suggest_tags,
     suggest_available,
@@ -399,6 +405,139 @@ class BasePrompt:
 #################################################################
 # Nodes
 #################################################################
+class TagsExtractor(BasePrompt):
+    """Turn a sentence into the Danbooru tags it names.
+
+    Every run of up to three words is looked up against the tag
+    vocabulary and its aliases (tag_search), so the output holds only
+    real tags, only ones the sentence said, and nothing the sentence
+    negated. The people in it are counted instead, into 1girl, 2boys,
+    solo. The tags come back grouped by kind, in TagsGenerator's order.
+    `table` lists every match with the spelling it came in through and
+    the tag's post count, which is where to look when a tag seems to
+    come from nowhere. It is the deterministic front end for a prompt written in
+    prose: feed the result to TagsGenerator to grow the scene, or to
+    TagsConflictFilter to check it against fixed tags.
+
+    Examples:
+        Input: text="a girl sitting on a chair by the window at sunset"
+        Output: processed_text="1girl, solo, sitting, on chair, window, sunset"
+    """
+
+    INPUT_TYPES = lambda: {
+        "required": {
+            "text": (
+                "STRING",
+                {
+                    "multiline": True,
+                    "default": "",
+                    "tooltip": "A sentence or two describing the scene. "
+                    "Words the vocabulary does not spell are skipped; "
+                    "'no', 'not' and 'without' drop what follows them.",
+                },
+            ),
+            "max_tags": (
+                "INT",
+                {
+                    "default": 20,
+                    "min": 1,
+                    "max": 100,
+                    "tooltip": "At most this many tags, in reading order.",
+                },
+            ),
+            "min_count": (
+                "INT",
+                {
+                    "default": 100,
+                    "min": 0,
+                    "max": 1000000,
+                    "step": 100,
+                    "tooltip": "Ignore tags with fewer than this many posts. "
+                    "100 is Tags Generator's vocabulary floor; the "
+                    "dump goes down to 20. Raise it when a rare tag's "
+                    "alias catches a phrase -- 'taking off' reaches "
+                    "takeoff (130 posts) through 'take-off'.",
+                },
+            ),
+            "subject": (
+                "BOOLEAN",
+                {
+                    "default": True,
+                    "tooltip": "Put the person count in front: 'a girl' is "
+                    "1girl and solo, 'a girl and two boys' is 1girl "
+                    "and 2boys. The person nouns are never searched "
+                    "either way.",
+                },
+            ),
+            "translate": (
+                "BOOLEAN",
+                {
+                    "default": False,
+                    "tooltip": "Run the text through Google Translate into "
+                    "English first, whatever language it is in "
+                    "(googletrans, one request per run). Rewrites "
+                    "English too, which straightens grammar the "
+                    "search would trip on.",
+                },
+            ),
+        },
+        "optional": {
+            "blacklist": (
+                "STRING",
+                {
+                    "default": "",
+                    "multiline": False,
+                    "tooltip": "Regex matched against each found tag in "
+                    "spaced form, case-insensitively: 'male focus' "
+                    "drops the tag the alias 'man' reaches. Dropped "
+                    "before max_tags is counted.",
+                },
+            ),
+        },
+    }
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("processed_text", "table")
+    FUNCTION = "execute"
+    CATEGORY = "GeneratorPack/Tags"
+
+    # async, so the translation is awaited on the executor's own loop; the
+    # sync decorators the other nodes wear would hide the coroutine from it
+    @classmethod
+    async def execute(
+        cls,
+        text: str,
+        max_tags: int = 20,
+        min_count: int = 100,
+        subject: bool = True,
+        translate: bool = False,
+        blacklist: str = "",
+    ) -> tuple[str, str]:
+        """Search the tag vocabulary for what the text names."""
+        if translate:
+            if googletrans is None:
+                raise RuntimeError(
+                    "translate needs googletrans: pip install googletrans"
+                )
+            text = (await googletrans.Translator().translate(text, dest="en")).text
+        pattern = blacklist_pattern(blacklist)
+        compiled = re.compile(pattern, re.IGNORECASE) if pattern else None
+        tags, matches = search(text, max_tags, compiled, subject, min_count)
+        tags = _sort_by_category(tags, CATEGORY_ORDER, lambda t: (t,))
+        return (", ".join(tags), format_table(matches, min_count))
+
+    @classmethod
+    def IS_CHANGED(
+        cls,
+        text: str,
+        max_tags: int = 20,
+        min_count: int = 100,
+        subject: bool = True,
+        translate: bool = False,
+        blacklist: str = "",
+    ) -> tuple:
+        return (text, max_tags, min_count, subject, translate, blacklist)
+
+
 class ProcessTags(BasePrompt):
     """Full process of tags from a prompt.
 

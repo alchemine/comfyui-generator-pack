@@ -42,6 +42,8 @@ first run, and it is meant to be edited: your copy is never overwritten.
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
+[`workflows/comfyui-generator-pack-tagsextractor-workflow.json`](workflows/comfyui-generator-pack-tagsextractor-workflow.json) starts from a sentence instead of tags: **Tags Extractor** in front of the same chain.
+
 ## Installation
 
 Search for **ComfyUI-Generator-Pack** in ComfyUI Manager, or:
@@ -52,6 +54,17 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 ```
 
 ## Nodes (`GeneratorPack/Tags`)
+
+**Tags Extractor** — a sentence in, the Danbooru tags it names out. Every run of up to three words is looked up
+against the vocabulary and its aliases, so only real tags come back, and only ones the sentence said: `sits`
+reaches `sitting`, `oppai` reaches `breasts`, `low ponytail` is one tag, and `without a hat` yields `missing
+headwear` rather than `hat`. The people are counted rather than looked up — `a girl` is `1girl, solo`, `a girl and
+two boys` is `1girl, 2boys`, `hugging him` is someone else and no `solo` — and `subject` turns that off. `translate`
+runs the text through Google Translate into English first, whatever language it is in (`googletrans`, one request
+per run). `min_count` and `blacklist` are Tags Generator's, for an alias that lands wrong: `taking off` reaches
+`takeoff` (130 posts) through `take-off`. `table` shows every match with the spelling it came in through and the
+post count, so that kind of turn is read off the node. The tags come back grouped by kind, in Tags Generator's
+order. Feed `processed_text` to Tags Generator to grow the scene.
 
 **Tags Generator** — the sampler above.
 
@@ -65,6 +78,10 @@ nsfw, others.
 lead. `cap` trims each group, colours first.
 
 ## Data
+
+`translate` is the one thing that leaves the machine: it sends the text to Google Translate through `googletrans`.
+Everything else runs offline.
+
 
 Nothing ships in the repository. Every table, label file and list downloads into `resources/` the first time a
 node needs it, each pinned by sha256 — the small files as one archive, the statistics tables (up to 100MB)

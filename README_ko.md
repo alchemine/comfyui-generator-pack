@@ -41,6 +41,8 @@
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
+[`workflows/comfyui-generator-pack-tagsextractor-workflow.json`](workflows/comfyui-generator-pack-tagsextractor-workflow.json)은 태그 대신 문장에서 시작합니다. 같은 체인 앞에 **Tags Extractor**를 둔 것입니다.
+
 ## 설치
 
 ComfyUI Manager에서 **ComfyUI-Generator-Pack**를 검색하거나:
@@ -51,6 +53,16 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 ```
 
 ## 노드 (`GeneratorPack/Tags`)
+
+**Tags Extractor** — 문장을 넣으면 그 문장이 말하는 Danbooru 태그가 나옵니다. 세 단어 이하의 모든 구간을 어휘와
+alias에서 찾으므로 실제 태그만, 문장이 말한 것만 돌아옵니다. `sits`는 `sitting`에, `oppai`는 `breasts`에 닿고,
+`low ponytail`은 태그 하나이며, `without a hat`은 `hat`이 아니라 `missing headwear`가 됩니다. 인물은 찾는 대신
+셉니다 — `a girl`은 `1girl, solo`, `a girl and two boys`는 `1girl, 2boys`, `hugging him`은 다른 사람이 있는
+것이라 `solo`가 빠집니다 — `subject`를 끄면 붙이지 않습니다. `translate`는 어떤 언어든 먼저 Google 번역으로
+영어로 바꿉니다(`googletrans`, 실행당 요청 1건). `min_count`와 `blacklist`는 Tags Generator의 것과 같고, alias가
+엉뚱하게 닿을 때 씁니다 — `taking off`는 `take-off`를 거쳐 `takeoff`(130 포스트)에 닿습니다. `table`은 매칭마다
+거쳐 온 철자와 포스트 수를 보여 주므로 그런 경로를 노드에서 바로 읽을 수 있습니다. 태그는 Tags Generator와 같은
+순서로 종류별로 정렬되어 나옵니다. `processed_text`를 Tags Generator에 넣어 장면을 키우면 됩니다.
 
 **Tags Generator** — 위에서 설명한 샘플러.
 
@@ -64,6 +76,10 @@ others로 나눕니다.
 옵니다. `cap`은 각 그룹을 자르며 색 태그부터 버립니다.
 
 ## 데이터
+
+기기 밖으로 나가는 것은 `translate` 하나입니다. `googletrans`로 문장을 Google 번역에 보냅니다. 나머지는 전부
+오프라인입니다.
+
 
 저장소에는 데이터가 없습니다. 테이블·라벨·목록 전부 노드가 처음 필요로 할 때 sha256으로 고정된 채
 `resources/`로 내려받습니다. 작은 파일은 아카이브 하나로, 최대 100MB짜리 통계 테이블은 따로 받으므로 태그를
