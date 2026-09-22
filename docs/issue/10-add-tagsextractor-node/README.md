@@ -16,7 +16,8 @@
 - bm25 순위 채우기는 하지 않는다. 문장에 없는 단어를 가진 태그가 들어와 무모순 목표와 어긋난다.
 - `no`, `not`, `without`은 다음 `and`/`but`/`with`나 문장 부호까지를 부정 구간으로 연다. 구간 자체가 태그면 그것을 낸다(`no hat`은 `missing headwear`의 alias). 나머지는 후보에서 뺀다.
 - 관사와 대명사(`a`, `the`, `her`, `his` 등)는 건너뛴다. `hand on her hip`이 `hand on own hip`에 닿는다.
-- 사람 명사는 검색하지 않고 센다. 바로 앞의 수 단어(`a`, `two`, `3`)를 붙여 `1girl`, `2girls`, `3boys`로, 6명 이상은 `6+girls`로, 수 없는 복수형은 `multiple girls`로 낸다. 합쳐 한 명이면 `solo`를 붙인다. `girl`/`woman`/`lady`는 girl, `boy`/`man`/`guy`는 boy다. 센 명사는 검색에서 소비되므로 `a man`이 alias로 `male focus`에 닿지 않는다.
+- 사람 명사는 검색하지 않고 센다. 성별이 정해진 가족·관계 명사(`mother`, `daughter`, `dad`, `husband` 등)도 사람으로 센다. `maid`, `nun`, `bride`처럼 그 자체가 태그인 낱말은 넣지 않는다. 세면 그 태그를 잃기 때문이다. 바로 앞의 수 단어(`a`, `two`, `3`)를 붙여 `1girl`, `2girls`, `3boys`로, 6명 이상은 `6+girls`로, 수 없는 복수형은 `multiple girls`로 낸다. 합쳐 한 명이면 `solo`를 붙인다. `girl`/`woman`/`lady`는 girl, `boy`/`man`/`guy`는 boy다. 센 명사는 검색에서 소비되므로 `a man`이 alias로 `male focus`에 닿지 않는다.
+- 세는 명사가 태그 이름과 똑같으면 그 태그도 함께 낸다. `and`로 이어진 명사 쌍(`mother and daughter`, `husband and wife`)과 복수형(`sisters`)이 여기 해당한다. 태그 **이름**이 같을 때만이고 alias로는 닿지 않는다. `man`은 `male focus`의 alias인데 그림 속 남자 한 명이 `male focus`를 뜻하지는 않는다.
 - 동사 뒤의 목적어 대명사(`her`, `him`, `them`)는 그림 속 다른 사람이다. `-ing` 단어 바로 뒤, 또는 `-ing` 단어와 `at`/`to`/`with` 뒤에 오면 `another`로 바꾼다. Danbooru가 그렇게 쓴다(`looking at another`, `undressing another`). 다른 사람이 있으므로 `solo`도 붙이지 않는다.
 - `min_count`는 포스트 수가 그보다 적은 태그를 뺀다. 기본 100은 `TagsGenerator`의 어휘 바닥이고 덤프는 20까지 내려간다. 희귀 태그의 alias가 구간을 잡을 때 올린다. `taking off`가 `take-off`를 거쳐 `takeoff`(130 포스트, 비행기 이륙)에 닿는 사례다. 빠진 태그는 단어를 차지하지 않으므로 그 밑의 짧은 구간이 다시 맞을 수 있다.
 - 결과는 `_sort_by_category`로 종류별(인물, 몸, 표정, 자세, 의상, 배경)로 항상 정렬한다. `TagsGenerator`와 같은 함수와 순서이고 위젯은 없다.
@@ -51,6 +52,10 @@
 | `test_subject_off_keeps_the_scene_only` | 같은 문장, `subject=False` | `sitting`, `on chair`, `window`, `sunset`만 나온다 |
 | `test_two_people_are_not_solo` | "a girl and a boy in a library" | `1girl`, `1boy`, `library`이고 `solo`가 없다 |
 | `test_a_number_counts` | "two girls and 3 boys" | `2girls`, `3boys` |
+| `test_a_family_noun_counts_as_its_gender` | "mother and daughter playing ball with dad" | 앞 두 태그가 `2girls`, `1boy`다 |
+| `test_a_noun_pair_spells_its_relationship` | "mother and daughter in a field", "husband and wife on a beach" | 각각 `mother and daughter`, `husband and wife`가 있다 |
+| `test_a_plural_noun_spells_its_relationship` | "sisters in a library" | `multiple girls`, `sisters`, `library` |
+| `test_a_person_noun_never_reaches_a_tag_through_an_alias` | "a woman and six men" | `male focus`가 없다 |
 | `test_a_person_noun_is_never_searched` | "a man is taking off her bra" | `1boy`가 있고 `male focus`가 없다 |
 | `test_an_object_pronoun_is_another` | "a man is undressing her bra", "she is looking at him" | `1boy`, `undressing another`, `bra` / `looking at another` |
 | `test_an_object_pronoun_takes_solo_away` | "a girl hugging him" | `1girl`, `hug`이고 `solo`가 없다 |
@@ -78,4 +83,4 @@ uv pip install --python .venv/bin/python -r tests/requirements.txt
 ## 테스트 결과
 | | 수정 전 | 수정 후 |
 |---|---|---|
-| pytest | 1 failed, 2 passed, 7 errors (`TagsExtractor` 미등록, `tag_search` 없음) | 30 passed |
+| pytest | 1 failed, 2 passed, 7 errors (`TagsExtractor` 미등록, `tag_search` 없음) | 34 passed |

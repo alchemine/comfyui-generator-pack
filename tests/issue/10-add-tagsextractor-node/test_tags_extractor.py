@@ -98,6 +98,28 @@ def test_a_number_counts(search_tags):
     assert search_tags("two girls and 3 boys") == ["2girls", "3boys"]
 
 
+def test_a_family_noun_counts_as_its_gender(search_tags):
+    tags = search_tags("mother and daughter playing ball with dad", min_count=500)
+    assert tags[:2] == ["2girls", "1boy"]
+
+
+def test_a_noun_pair_spells_its_relationship(search_tags):
+    assert "mother and daughter" in search_tags("mother and daughter in a field")
+    assert "husband and wife" in search_tags("husband and wife on a beach")
+
+
+def test_a_plural_noun_spells_its_relationship(search_tags):
+    assert search_tags("sisters in a library") == [
+        "multiple girls",
+        "sisters",
+        "library",
+    ]
+
+
+def test_a_person_noun_never_reaches_a_tag_through_an_alias(search_tags):
+    assert "male focus" not in search_tags("a woman and six men")
+
+
 def test_a_person_noun_is_never_searched(search_tags):
     tags = search_tags("a man is taking off her bra")
     assert "1boy" in tags

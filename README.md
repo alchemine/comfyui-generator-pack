@@ -59,7 +59,8 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 against the vocabulary and its aliases, so only real tags come back, and only ones the sentence said: `sits`
 reaches `sitting`, `oppai` reaches `breasts`, `low ponytail` is one tag, and `without a hat` yields `missing
 headwear` rather than `hat`. The people are counted rather than looked up — `a girl` is `1girl, solo`, `a girl and
-two boys` is `1girl, 2boys`, `hugging him` is someone else and no `solo` — and `subject` turns that off. `translate`
+two boys` is `1girl, 2boys`, `hugging him` is someone else and no `solo` — and `subject` turns that off. Family
+words count too, and a pair of them says what it is: `mother and daughter` is `2girls` and the tag of that name. `translate`
 runs the text through Google Translate into English first, whatever language it is in (`googletrans`, one request
 per run). `min_count` and `blacklist` are Tags Generator's, for an alias that lands wrong: `taking off` reaches
 `takeoff` (130 posts) through `take-off`. `table` shows every match with the spelling it came in through and the

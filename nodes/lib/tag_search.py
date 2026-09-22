@@ -30,7 +30,9 @@ does not claim is left out, so "without a hat" contributes no hat.
 Who is in the picture is counted rather than looked up: "a girl and two
 boys" is 1girl and 2boys, and a lone person is also solo. The person
 nouns are consumed by the count, so "a man" never reaches male focus
-through its alias. An object pronoun after a verb -- "hugging him",
+through its alias -- except where a noun or a pair of them is a tag in
+its own right, which is how Danbooru writes a relationship: "mother and
+daughter" counts two girls and says so. An object pronoun after a verb -- "hugging him",
 "looking at her" -- is someone else in the picture: it is read as
 "another", which is how Danbooru spells it (looking at another), and it
 takes solo away. The count is final: when it says solo, no stage may
@@ -132,21 +134,68 @@ COUNTS = {
     "five": 5,
     "six": 6,
 }
+# Nouns that name a person of a known gender. Family and relationship
+# words are here because a scene is usually written with them ("mother
+# and daughter"), and Danbooru has no tag for any of them on its own --
+# a word that is itself a tag (maid, nun, bride, princess) is left out,
+# since counting it would cost the tag.
 PERSONS = {
     "girl": "girl",
     "woman": "girl",
     "lady": "girl",
+    "mother": "girl",
+    "mom": "girl",
+    "mommy": "girl",
+    "mama": "girl",
+    "daughter": "girl",
+    "sister": "girl",
+    "wife": "girl",
+    "girlfriend": "girl",
+    "grandmother": "girl",
+    "grandma": "girl",
+    "aunt": "girl",
+    "niece": "girl",
     "boy": "boy",
     "man": "boy",
     "guy": "boy",
+    "father": "boy",
+    "dad": "boy",
+    "daddy": "boy",
+    "papa": "boy",
+    "son": "boy",
+    "brother": "boy",
+    "husband": "boy",
+    "boyfriend": "boy",
+    "grandfather": "boy",
+    "grandpa": "boy",
+    "uncle": "boy",
+    "nephew": "boy",
 }
 PLURALS = {
     "girls": "girl",
     "women": "girl",
     "ladies": "girl",
+    "mothers": "girl",
+    "moms": "girl",
+    "daughters": "girl",
+    "sisters": "girl",
+    "wives": "girl",
+    "girlfriends": "girl",
+    "grandmothers": "girl",
+    "aunts": "girl",
+    "nieces": "girl",
     "boys": "boy",
     "men": "boy",
     "guys": "boy",
+    "fathers": "boy",
+    "dads": "boy",
+    "sons": "boy",
+    "brothers": "boy",
+    "husbands": "boy",
+    "boyfriends": "boy",
+    "grandfathers": "boy",
+    "uncles": "boy",
+    "nephews": "boy",
 }
 
 _WORD_RE = re.compile(r"\w+")
@@ -358,27 +407,57 @@ def _match_span(db, words, negated, min_count, solo):
     return [m for _, m in sorted(found, key=lambda x: x[0])]
 
 
-def _count_persons(words, counts):
-    """Tally `words`' person nouns into `counts`; the words left over.
+def _count_persons(db, words, counts, min_count):
+    """Tally `words`' person nouns into `counts`; the words left over and
+    the relationship tags they spell.
 
     A noun takes the number just before it ("two girls", "3 boys"); an
     unnumbered plural counts as many, an unnumbered singular as one.
+    Counting is not all a noun is worth: a pair joined by "and" is
+    Danbooru's spelling for the relationship between them (mother and
+    daughter, husband and wife), and so is a bare plural (sisters), so
+    the nouns are looked up as well as counted. Only a tag named the way
+    the nouns are counts as one, never an alias of some other tag: "man"
+    is an alias of male focus, which is not what a man in the picture
+    means.
     """
     rest = []
-    for i, w in enumerate(words):
+    found = []
+    i = 0
+    while i < len(words):
+        w = words[i]
         kind = PERSONS.get(w) or PLURALS.get(w)
         if kind is None:
             rest.append(w)
+            i += 1
             continue
-        number = words[i - 1] if i else ""
-        if number in COUNTS or number.isdigit():
-            counts[kind] += int(COUNTS.get(number) or number)
-            rest.pop()
-        elif w in PLURALS:
-            counts[kind] = float("inf")
+
+        pair = words[i : i + 3]
+        if (
+            len(pair) == 3
+            and pair[1] == "and"
+            and (PERSONS.get(pair[2]) or PLURALS.get(pair[2]))
+        ):
+            nouns, span = [w, pair[2]], pair
         else:
-            counts[kind] += 1
-    return rest
+            nouns, span = [w], [w]
+
+        row = _lookup(db, span, True, solo=False)
+        if row and row[0] == " ".join(span) and row[2] >= min_count:
+            found.append(Match(" ".join(span), row[0], row[1], row[2], "kept"))
+
+        for noun in nouns:
+            number = words[i - 1] if i and len(nouns) == 1 else ""
+            kind = PERSONS.get(noun) or PLURALS[noun]
+            if number in COUNTS or number.isdigit():
+                counts[kind] += int(COUNTS.get(number) or number)
+                rest.pop()
+            elif noun in PLURALS:
+                counts[kind] = float("inf")
+            else:
+                counts[kind] += 1
+        i += len(span)
+    return rest, found
 
 
 def _mark_another(words, counts):
@@ -437,9 +516,10 @@ def search(text, max_tags=20, blacklist=None, subject=True, min_count=100):
     # the count comes first, over the whole text, because it rules on
     # what the search may find afterwards
     counts = {"girl": 0, "boy": 0, "another": False}
-    clauses = []
+    clauses, relations = [], []
     for clause in _CLAUSE_RE.findall(text.lower()):
-        words = _count_persons(_WORD_RE.findall(clause), counts)
+        words, found = _count_persons(db, _WORD_RE.findall(clause), counts, min_count)
+        relations.extend(found)
         words = _mark_another(words, counts)
         clauses.append(
             ["no" if w == "without" else w for w in words if w not in SKIPPED]
@@ -447,7 +527,7 @@ def search(text, max_tags=20, blacklist=None, subject=True, min_count=100):
     subject_tags = _subject_tags(counts)
     solo = "solo" in subject_tags
 
-    matches = [Match("(count)", t, t, None, "kept") for t in subject_tags]
+    matches = [Match("(count)", t, t, None, "kept") for t in subject_tags] + relations
     for words in clauses:
         for start, end, negated in _spans(words):
             matches.extend(_match_span(db, words[start:end], negated, min_count, solo))
