@@ -63,8 +63,10 @@ two boys` is `1girl, 2boys`, `hugging him` is someone else and no `solo` — and
 runs the text through Google Translate into English first, whatever language it is in (`googletrans`, one request
 per run). `min_count` and `blacklist` are Tags Generator's, for an alias that lands wrong: `taking off` reaches
 `takeoff` (130 posts) through `take-off`. `table` shows every match with the spelling it came in through and the
-post count, so that kind of turn is read off the node. The tags come back grouped by kind, in Tags Generator's
-order. Feed `processed_text` to Tags Generator to grow the scene.
+post count, so that kind of turn is read off the node. A phrase the vocabulary cannot spell is looked for in the
+Danbooru wiki instead — the first sentence of each tag's page — and comes back marked `wiki` in the table: `taking
+off` is in the definition of `undressing`. The tags come back grouped by kind, in Tags Generator's order. Feed
+`processed_text` to Tags Generator to grow the scene.
 
 **Tags Generator** — the sampler above.
 

@@ -123,6 +123,22 @@ def test_min_count_drops_a_rare_alias_hit(search_tags):
     assert search_tags(sentence, min_count=500) == ["1boy", "solo", "bra"]
 
 
+def test_a_phrase_the_vocabulary_cannot_spell_comes_from_the_wiki():
+    tags, matches = tag_search.search("a man is taking off her bra", min_count=500)
+    assert tags == ["1boy", "undressing another", "bra"]
+    assert [(m.phrase, m.tag) for m in matches if m.spelling == "wiki"] == [
+        ("taking off", "undressing another")
+    ]
+
+
+def test_a_spelled_phrase_never_goes_to_the_wiki(search_tags):
+    assert search_tags("a girl on a chair") == ["1girl", "solo", "on chair"]
+
+
+def test_a_single_leftover_word_never_goes_to_the_wiki(search_tags):
+    assert search_tags("a girl, surface") == ["1girl", "solo"]
+
+
 def test_the_table_names_the_spelling_and_the_verdict():
     tags, matches = tag_search.search("a man is taking off her bra", min_count=500)
     table = tag_search.format_table(matches, 500)

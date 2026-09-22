@@ -61,8 +61,10 @@ alias에서 찾으므로 실제 태그만, 문장이 말한 것만 돌아옵니�
 것이라 `solo`가 빠집니다 — `subject`를 끄면 붙이지 않습니다. `translate`는 어떤 언어든 먼저 Google 번역으로
 영어로 바꿉니다(`googletrans`, 실행당 요청 1건). `min_count`와 `blacklist`는 Tags Generator의 것과 같고, alias가
 엉뚱하게 닿을 때 씁니다 — `taking off`는 `take-off`를 거쳐 `takeoff`(130 포스트)에 닿습니다. `table`은 매칭마다
-거쳐 온 철자와 포스트 수를 보여 주므로 그런 경로를 노드에서 바로 읽을 수 있습니다. 태그는 Tags Generator와 같은
-순서로 종류별로 정렬되어 나옵니다. `processed_text`를 Tags Generator에 넣어 장면을 키우면 됩니다.
+거쳐 온 철자와 포스트 수를 보여 주므로 그런 경로를 노드에서 바로 읽을 수 있습니다. 어휘가 철자로 갖고 있지 않은
+구는 Danbooru wiki에서 찾습니다 — 각 태그 페이지의 첫 문장이 대상이고, 표에는 `wiki`로 표시됩니다. `taking off`는
+`undressing`의 정의에 있습니다. 태그는 Tags Generator와 같은 순서로 종류별로 정렬되어 나옵니다. `processed_text`를
+Tags Generator에 넣어 장면을 키우면 됩니다.
 
 **Tags Generator** — 위에서 설명한 샘플러.
 

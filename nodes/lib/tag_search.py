@@ -35,10 +35,20 @@ through its alias. An object pronoun after a verb -- "hugging him",
 "another", which is how Danbooru spells it (looking at another), and it
 takes solo away.
 
+A phrase the vocabulary does not spell at all is looked for in the
+Danbooru wiki instead: the first sentence of every general tag's page
+(resources/wiki_definitions_v1.txt) is a third table, and a run of two
+or more words no spelling claimed is matched against it, best bm25
+first -- "taking off" is in the definition of undressing. Only leftover
+runs go there, never single words, because a definition names the
+things around its tag too: "chair" sits in the definition of sitting,
+and "surface" would reach it.
+
 Every match is reported alongside the tags, with the spelling it came
 in through and the tag's post count, so a wrong turn -- "taking off"
 reaching takeoff through its alias "take-off" -- can be read off the
-node rather than guessed at. min_count is the lever for that case.
+node rather than guessed at. min_count is the lever for that case, and
+with takeoff under it the wiki stage gets its turn.
 """
 
 import csv
@@ -53,7 +63,14 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 
 logger = artifact.get_logger()
 
+_WIKI_PATH = artifact.resource("wiki_definitions_v1.txt")
+# not committed (2MB); fetched from the data release on first use. Built
+# by playground/extract_wiki_definitions.py from the wiki dump.
+_WIKI_URL = artifact.url_for("data-v1.1.0", "wiki_definitions_v1.txt")
+_WIKI_SHA256 = "e05988eb614bc6ccb0eb21334217ab6d54e36b2193a14267b613f5c31d0ebf28"
+
 MAX_WORDS = 3  # longest tag spelling looked up, in words
+MIN_WIKI_WORDS = 2  # shortest leftover run the wiki is asked about
 # words that carry no tag of their own and would otherwise split "hand on
 # her hip" away from `hand on own hip`
 SKIPPED = {
@@ -116,11 +133,12 @@ _INFLECTED_RE = re.compile(r"(s|ing|ed)$")
 # keeps the dress
 _CLAUSE_RE = re.compile(r"[^,.;:!?()\n]+")
 
-_INDEX = None  # lazy singleton: sqlite connection with the two tables
+_INDEX = None  # lazy singleton: sqlite connection with the three tables
 
 # one row of the report: the words that matched, the tag they reached,
-# the spelling they reached it through, its post count, and what became
-# of it -- "kept", "below min_count", "blacklisted"
+# the spelling they reached it through ("wiki" for a definition hit),
+# its post count, and what became of it -- "kept", "below min_count",
+# "blacklisted"
 Match = namedtuple("Match", "phrase tag spelling posts verdict")
 
 
@@ -161,8 +179,40 @@ def _load(path=None):
             "posts UNINDEXED, tokenize='%s')" % (table, tokenize)
         )
         db.executemany("INSERT INTO %s VALUES (?, ?, ?, ?, ?)" % table, spellings)
+    db.execute(
+        "CREATE VIRTUAL TABLE definitions USING fts5("
+        "tag UNINDEXED, sentence, posts UNINDEXED, tokenize='porter unicode61')"
+    )
+    db.executemany(
+        "INSERT INTO definitions VALUES (?, ?, ?)",
+        _definitions({r[0]: int(r[2]) for r in rows}),
+    )
     logger.debug("[TagSearch] %d spellings over %d tags", len(spellings), len(rows))
     return db
+
+
+def _definitions(posts_of):
+    """(tag, first wiki sentence, posts) rows, or none if the file is missing.
+
+    The wiki stage is optional the way the statistics tables are: the
+    node searches spellings alone rather than failing the workflow.
+    """
+    try:
+        path = artifact.ensure(
+            _WIKI_PATH, _WIKI_URL, _WIKI_SHA256, "TagsExtractor", "2MB"
+        )
+    except Exception as e:
+        logger.warning(
+            "[TagSearch] wiki definitions unavailable, spellings only: %s", e
+        )
+        return []
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            tag, _, sentence = line.rstrip("\n").partition("\t")
+            if tag in posts_of:
+                rows.append((tag.replace("_", " "), sentence, posts_of[tag]))
+    return rows
 
 
 def _index():
@@ -187,6 +237,15 @@ def _lookup(db, words, at_end):
         if row:
             return row
     return None
+
+
+def _lookup_definition(db, words, min_count):
+    """The tag whose wiki definition best carries the phrase `words`, or None."""
+    return db.execute(
+        "SELECT tag, posts FROM definitions WHERE definitions MATCH ? AND posts >= ? "
+        "ORDER BY bm25(definitions) LIMIT 1",
+        ('"%s"' % " ".join(words), min_count),
+    ).fetchone()
 
 
 def _spans(words):
@@ -214,7 +273,8 @@ def _match_span(db, words, negated, min_count):
     word (`no hat`); the words it leaves unclaimed are what the sentence
     said is absent, so they yield nothing. A tag under `min_count` is
     reported but claims nothing, so a shorter run under it can still
-    match.
+    match. What no spelling claimed is then tried, in runs of two words
+    or more, against the wiki definitions.
     """
     claimed = [False] * len(words)
     found = []  # (position, Match)
@@ -246,6 +306,19 @@ def _match_span(db, words, negated, min_count):
             found.append(
                 (i, Match(" ".join(words[i : i + n]), tag, spelling, posts, "kept"))
             )
+    if not negated:
+        for n in range(min(MAX_WORDS, len(words)), MIN_WIKI_WORDS - 1, -1):
+            for i in range(len(words) - n + 1):
+                if any(claimed[i : i + n]):
+                    continue
+                row = _lookup_definition(db, words[i : i + n], min_count)
+                if row is None:
+                    continue
+                tag, posts = row
+                claimed[i : i + n] = [True] * n
+                found.append(
+                    (i, Match(" ".join(words[i : i + n]), tag, "wiki", posts, "kept"))
+                )
     return [m for _, m in sorted(found, key=lambda x: x[0])]
 
 
@@ -346,6 +419,10 @@ def search(text, max_tags=20, blacklist=None, subject=True, min_count=100):
             matches[i] = m._replace(verdict="blacklisted")
         elif m.tag not in tags:
             tags.append(m.tag)
+    # a tag spelled with "another" (undressing another) says there is
+    # someone else, whichever stage found it
+    if "solo" in tags and any("another" in t.split() for t in tags):
+        tags.remove("solo")
     return tags[:max_tags], matches
 
 
