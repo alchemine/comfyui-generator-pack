@@ -21,7 +21,7 @@
 - `min_count`는 포스트 수가 그보다 적은 태그를 뺀다. 기본 100은 `TagsGenerator`의 어휘 바닥이고 덤프는 20까지 내려간다. 희귀 태그의 alias가 구간을 잡을 때 올린다. `taking off`가 `take-off`를 거쳐 `takeoff`(130 포스트, 비행기 이륙)에 닿는 사례다. 빠진 태그는 단어를 차지하지 않으므로 그 밑의 짧은 구간이 다시 맞을 수 있다.
 - 결과는 `_sort_by_category`로 종류별(인물, 몸, 표정, 자세, 의상, 배경)로 항상 정렬한다. `TagsGenerator`와 같은 함수와 순서이고 위젯은 없다.
 - 두 번째 출력 `table`은 매칭 하나마다 한 줄이다. 맞은 구간, 태그, 거쳐 온 철자(alias면), 포스트 수, 판정(`kept`, `below min_count`, `blacklisted`)을 적는다. 인물 수 태그는 구간 `(count)`로 적는다. `TagsConflictFilter`의 `table`과 같은 형식이다.
-- 철자가 하나도 잡지 못한 **두 단어 이상**의 구간은 Danbooru wiki 정의에서 찾는다. general 태그의 wiki 첫 문장을 `resources/wiki_definitions_v1.txt`(탭 구분, 23570행, 2MB)로 뽑아 세 번째 FTS5 테이블 `definitions`에 넣는다. 구 검색 결과는 bm25 순이고 `min_count` 밑은 뺀다. 한 단어 구간은 wiki를 타지 않는다. `chair`가 `sitting`의 정의에 있듯 정의는 주변 사물도 언급하기 때문이다. 부정 구간도 타지 않는다.
+- 철자가 하나도 잡지 못한 **두 단어 이상**의 구간은 Danbooru wiki 정의에서 찾는다. general 태그의 wiki 첫 문장을 `resources/wiki_definitions_v1.txt`(탭 구분, 23570행, 2MB)로 뽑아 세 번째 FTS5 테이블 `definitions`에 넣는다. 구 검색 결과는 bm25 순이고 `min_count` 밑은 뺀다. 한 단어 구간과 기능어(`and`, `in`, `of` 등)만으로 된 구간은 wiki를 타지 않는다. `chair`가 `sitting`의 정의에 있듯 정의는 주변 사물도 언급하기 때문이다. 부정 구간도 타지 않는다.
 - wiki 파일은 `playground/extract_wiki_definitions.py`(gitignore 안)가 wiki 덤프에서 만든다. `tag_veto.npz`처럼 릴리스 `data-v1.1.0`에서 `artifact.ensure`로 받고 sha256으로 고정한다. 파일을 못 받으면 wiki 단계만 빠지고 철자 검색은 그대로다.
 - wiki 단계의 한계를 적어 둔다. 정의에 우연히 들어 있는 구도 잡힌다. `on surface`는 `condensation`, `looking out of`는 `sideways glance`가 된다. 표의 `via` 열에 `wiki`라고 적히므로 어디서 왔는지는 보인다.
 - 어느 단계에서 왔든 `another`가 들어간 태그가 있으면 `solo`를 뺀다. `undressing another`는 다른 사람이 있다는 뜻이다.
@@ -54,10 +54,11 @@
 | `test_a_person_noun_is_never_searched` | "a man is taking off her bra" | `1boy`가 있고 `male focus`가 없다 |
 | `test_an_object_pronoun_is_another` | "a man is undressing her bra", "she is looking at him" | `1boy`, `undressing another`, `bra` / `looking at another` |
 | `test_an_object_pronoun_takes_solo_away` | "a girl hugging him" | `1girl`, `hug`이고 `solo`가 없다 |
-| `test_min_count_drops_a_rare_alias_hit` | "a man is taking off her bra", `min_count=500` | 기본값에서는 `takeoff`가 있고, 500에서는 `1boy`, `solo`, `bra`만 남는다 |
+| `test_min_count_drops_a_rare_alias_hit` | "a man is taking off her bra", `min_count=500` | 기본값에서는 `takeoff`가 있고, 500에서는 없다 |
 | `test_a_phrase_the_vocabulary_cannot_spell_comes_from_the_wiki` | "a man is taking off her bra", `min_count=500` | `1boy`, `undressing another`, `bra`이고 `taking off → undressing another` 행의 `via`가 `wiki`다 |
 | `test_a_spelled_phrase_never_goes_to_the_wiki` | "a girl on a chair" | `1girl`, `solo`, `on chair`이고 `sitting`이 없다 |
 | `test_a_single_leftover_word_never_goes_to_the_wiki` | "a girl, surface" | `1girl`, `solo`뿐이다 |
+| `test_function_words_alone_never_go_to_the_wiki` | "a girl and a boy in a library" | `1girl`, `1boy`, `library`뿐이다. `and in` 같은 기능어만의 구간은 wiki를 타지 않는다 |
 | `test_the_table_names_the_spelling_and_the_verdict` | 같은 문장, `min_count=500`의 `table` | `taking off → takeoff (take-off, 130, below min_count)` 행과 `(min_count: 500)` 꼬리가 있다 |
 | `test_the_tags_come_back_grouped_by_kind` | "a girl in a library, smiling" | `1girl, solo, smile, library` |
 | `test_a_blacklisted_tag_is_left_out` | "a girl in a school uniform", `blacklist="uniform"` | `school uniform`이 없다. blacklist 없이는 있다 |
@@ -74,4 +75,4 @@ uv pip install --python .venv/bin/python -r tests/requirements.txt
 ## 테스트 결과
 | | 수정 전 | 수정 후 |
 |---|---|---|
-| pytest | 1 failed, 2 passed, 7 errors (`TagsExtractor` 미등록, `tag_search` 없음) | 26 passed |
+| pytest | 1 failed, 2 passed, 7 errors (`TagsExtractor` 미등록, `tag_search` 없음) | 27 passed |

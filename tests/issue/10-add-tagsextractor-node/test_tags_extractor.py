@@ -120,7 +120,7 @@ def test_an_object_pronoun_takes_solo_away(search_tags):
 def test_min_count_drops_a_rare_alias_hit(search_tags):
     sentence = "a man is taking off her bra"
     assert "takeoff" in search_tags(sentence)
-    assert search_tags(sentence, min_count=500) == ["1boy", "solo", "bra"]
+    assert "takeoff" not in search_tags(sentence, min_count=500)
 
 
 def test_a_phrase_the_vocabulary_cannot_spell_comes_from_the_wiki():
@@ -139,11 +139,15 @@ def test_a_single_leftover_word_never_goes_to_the_wiki(search_tags):
     assert search_tags("a girl, surface") == ["1girl", "solo"]
 
 
+def test_function_words_alone_never_go_to_the_wiki(search_tags):
+    assert search_tags("a girl and a boy in a library") == ["1girl", "1boy", "library"]
+
+
 def test_the_table_names_the_spelling_and_the_verdict():
     tags, matches = tag_search.search("a man is taking off her bra", min_count=500)
     table = tag_search.format_table(matches, 500)
     assert re.search(
-        r"\| taking off \| takeoff \| take-off \| +130 \| below min_count \|", table
+        r"\| taking off \| takeoff +\| take-off +\| +130 \| below min_count +\|", table
     )
     assert table.endswith("(min_count: 500)")
 

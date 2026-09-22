@@ -99,6 +99,26 @@ OBJECTS = {"her", "him", "them"}
 LINKS = {"at", "to", "with", "toward", "towards"}
 # where a negated span ends; the sentence's own punctuation ends it too
 BOUNDARIES = {"and", "but", "with", "while", "or", "then"}
+# a run made of these alone ("and in") is not a phrase the wiki should
+# be asked about
+FUNCTION_WORDS = (
+    BOUNDARIES
+    | LINKS
+    | {
+        "in",
+        "on",
+        "of",
+        "by",
+        "for",
+        "from",
+        "off",
+        "up",
+        "down",
+        "out",
+        "over",
+        "under",
+    }
+)
 
 COUNTS = {
     "a": 1,
@@ -253,6 +273,9 @@ def _spans(words):
     spans = []
     start = 0
     while start < len(words):
+        if words[start] in BOUNDARIES:
+            start += 1
+            continue
         negated = words[start] in NEGATIONS
         end = start + 1
         while (
@@ -310,6 +333,8 @@ def _match_span(db, words, negated, min_count):
         for n in range(min(MAX_WORDS, len(words)), MIN_WIKI_WORDS - 1, -1):
             for i in range(len(words) - n + 1):
                 if any(claimed[i : i + n]):
+                    continue
+                if all(w in FUNCTION_WORDS for w in words[i : i + n]):
                     continue
                 row = _lookup_definition(db, words[i : i + n], min_count)
                 if row is None:
