@@ -33,13 +33,15 @@ nouns are consumed by the count, so "a man" never reaches male focus
 through its alias. An object pronoun after a verb -- "hugging him",
 "looking at her" -- is someone else in the picture: it is read as
 "another", which is how Danbooru spells it (looking at another), and it
-takes solo away.
+takes solo away. The count is final: when it says solo, no stage may
+answer with a tag spelled "another", and the next spelling or
+definition down takes its place.
 
 A phrase the vocabulary does not spell at all is looked for in the
 Danbooru wiki instead: the first sentence of every general tag's page
 (resources/wiki_definitions_v1.txt) is a third table, and a run of two
-or more words no spelling claimed is matched against it, best bm25
-first -- "taking off" is in the definition of undressing. Only leftover
+or more words no spelling claimed is matched against it, most posted
+tag first -- "taking off" is in the definition of undressing. Only leftover
 runs go there, never single words, because a definition names the
 things around its tag too: "chair" sits in the definition of sitting,
 and "surface" would reach it.
@@ -158,7 +160,7 @@ _INDEX = None  # lazy singleton: sqlite connection with the three tables
 # one row of the report: the words that matched, the tag they reached,
 # the spelling they reached it through ("wiki" for a definition hit),
 # its post count, and what became of it -- "kept", "below min_count",
-# "blacklisted"
+# "blacklisted", "subject off"
 Match = namedtuple("Match", "phrase tag spelling posts verdict")
 
 
@@ -242,8 +244,12 @@ def _index():
     return _INDEX
 
 
-def _lookup(db, words, at_end):
-    """The most posted (tag, spelling, posts) spelled exactly `words`, or None."""
+def _lookup(db, words, at_end, solo):
+    """The most posted (tag, spelling, posts) spelled exactly `words`, or None.
+
+    With one person in the picture a tag spelled with "another" cannot
+    be it, so the next spelling down takes its place.
+    """
     phrase = '"%s"' % " ".join(words)
     tables = ["exact"]
     if any(_INFLECTED_RE.search(w) for w in words):
@@ -251,20 +257,25 @@ def _lookup(db, words, at_end):
     for table in tables:
         row = db.execute(
             "SELECT tag, spelling, posts FROM %s WHERE %s MATCH ? AND words = ? "
-            "AND (truncated = 0 OR ?) ORDER BY posts DESC LIMIT 1" % (table, table),
-            (phrase, len(words), at_end),
+            "AND (truncated = 0 OR ?) AND (? OR tag NOT LIKE '%%another%%') "
+            "ORDER BY posts DESC LIMIT 1" % (table, table),
+            (phrase, len(words), at_end, not solo),
         ).fetchone()
         if row:
             return row
     return None
 
 
-def _lookup_definition(db, words, min_count):
-    """The tag whose wiki definition best carries the phrase `words`, or None."""
+def _lookup_definition(db, words, min_count, solo):
+    """The most posted tag whose wiki definition carries the phrase `words`.
+
+    With one person in the picture a tag spelled with "another" cannot
+    be it, so the next tag down takes its place.
+    """
     return db.execute(
         "SELECT tag, posts FROM definitions WHERE definitions MATCH ? AND posts >= ? "
-        "ORDER BY bm25(definitions) LIMIT 1",
-        ('"%s"' % " ".join(words), min_count),
+        "AND (? OR tag NOT LIKE '%another%') ORDER BY posts DESC LIMIT 1",
+        ('"%s"' % " ".join(words), min_count, not solo),
     ).fetchone()
 
 
@@ -289,7 +300,7 @@ def _spans(words):
     return spans
 
 
-def _match_span(db, words, negated, min_count):
+def _match_span(db, words, negated, min_count, solo):
     """Matches in one span, longest spelling first, each word claimed once.
 
     A negated span may only yield the tag that starts on its negation
@@ -307,7 +318,7 @@ def _match_span(db, words, negated, min_count):
                 continue
             if negated and i != 0:
                 continue
-            row = _lookup(db, words[i : i + n], at_end=i + n == len(words))
+            row = _lookup(db, words[i : i + n], i + n == len(words), solo)
             if row is None:
                 continue
             tag, spelling, posts = row
@@ -336,7 +347,7 @@ def _match_span(db, words, negated, min_count):
                     continue
                 if all(w in FUNCTION_WORDS for w in words[i : i + n]):
                     continue
-                row = _lookup_definition(db, words[i : i + n], min_count)
+                row = _lookup_definition(db, words[i : i + n], min_count, solo)
                 if row is None:
                     continue
                 tag, posts = row
@@ -412,8 +423,9 @@ def search(text, max_tags=20, blacklist=None, subject=True, min_count=100):
     """(tags, matches) for `text`: the Danbooru tags it names, in reading
     order and at most `max_tags`, and every match the search made.
 
-    `subject` puts the person count (1girl, 2boys, solo) in front, as
-    matches of their own. The person nouns are counted either way and
+    The person count (1girl, 2boys, solo) leads, as matches of its own;
+    `subject` off drops it from the tags at the very end, after it has
+    ruled on the rest. The person nouns are counted either way and
     never searched. `min_count` drops tags with fewer posts; `blacklist`
     is a compiled regex. Both drop before the count is taken, and both
     leave their trace in the matches.
@@ -422,19 +434,23 @@ def search(text, max_tags=20, blacklist=None, subject=True, min_count=100):
     if db is None:
         return [], []
 
+    # the count comes first, over the whole text, because it rules on
+    # what the search may find afterwards
     counts = {"girl": 0, "boy": 0, "another": False}
-    matches = []
+    clauses = []
     for clause in _CLAUSE_RE.findall(text.lower()):
         words = _count_persons(_WORD_RE.findall(clause), counts)
         words = _mark_another(words, counts)
-        words = ["no" if w == "without" else w for w in words if w not in SKIPPED]
-        for start, end, negated in _spans(words):
-            matches.extend(_match_span(db, words[start:end], negated, min_count))
+        clauses.append(
+            ["no" if w == "without" else w for w in words if w not in SKIPPED]
+        )
+    subject_tags = _subject_tags(counts)
+    solo = "solo" in subject_tags
 
-    if subject:
-        matches = [
-            Match("(count)", t, t, None, "kept") for t in _subject_tags(counts)
-        ] + matches
+    matches = [Match("(count)", t, t, None, "kept") for t in subject_tags]
+    for words in clauses:
+        for start, end, negated in _spans(words):
+            matches.extend(_match_span(db, words[start:end], negated, min_count, solo))
 
     tags = []
     for i, m in enumerate(matches):
@@ -442,12 +458,10 @@ def search(text, max_tags=20, blacklist=None, subject=True, min_count=100):
             continue
         if blacklist and blacklist.search(m.tag):
             matches[i] = m._replace(verdict="blacklisted")
+        elif not subject and m.phrase == "(count)":
+            matches[i] = m._replace(verdict="subject off")
         elif m.tag not in tags:
             tags.append(m.tag)
-    # a tag spelled with "another" (undressing another) says there is
-    # someone else, whichever stage found it
-    if "solo" in tags and any("another" in t.split() for t in tags):
-        tags.remove("solo")
     return tags[:max_tags], matches
 
 

@@ -125,9 +125,39 @@ def test_min_count_drops_a_rare_alias_hit(search_tags):
 
 def test_a_phrase_the_vocabulary_cannot_spell_comes_from_the_wiki():
     tags, matches = tag_search.search("a man is taking off her bra", min_count=500)
-    assert tags == ["1boy", "undressing another", "bra"]
+    assert tags == ["1boy", "solo", "undressing", "bra"]
     assert [(m.phrase, m.tag) for m in matches if m.spelling == "wiki"] == [
-        ("taking off", "undressing another")
+        ("taking off", "undressing")
+    ]
+
+
+def test_solo_sends_the_wiki_to_the_next_tag_down():
+    db = tag_search._index()
+    assert (
+        tag_search._lookup_definition(db, ["taking", "off"], 500, solo=False)[0]
+        == "undressing"
+    )
+    top = db.execute(
+        "SELECT tag FROM definitions WHERE definitions MATCH '\"someone else\"' "
+        "ORDER BY posts DESC LIMIT 1"
+    ).fetchone()[0]
+    assert "another" in top
+    assert (
+        "another"
+        not in tag_search._lookup_definition(db, ["someone", "else"], 100, solo=True)[0]
+    )
+
+
+def test_solo_sends_a_spelling_to_the_next_tag_down(search_tags):
+    assert search_tags("a girl undressing another") == ["1girl", "solo", "undressing"]
+
+
+def test_subject_off_still_rules_and_leaves_the_table():
+    tags, matches = tag_search.search("a girl undressing another", subject=False)
+    assert tags == ["undressing"]
+    assert [m.verdict for m in matches if m.phrase == "(count)"] == [
+        "subject off",
+        "subject off",
     ]
 
 
