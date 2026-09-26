@@ -21,6 +21,7 @@ Feed a prompt into **Tags Generator**, read the extended prompt out of `processe
 | Widget | What it does |
 |--------|--------------|
 | `n` | How many tags to add, counted after post-processing. `0` = draw the length from the corpus and stop once nothing beats chance |
+| `auto` | Draws from every category with no share. The category toggles and shares below are ignored but kept |
 | `subject` / `pose` / `expressions` / `body` / `clothes` / `background` | A toggle and a `_share` each. The share is relative to the categories still on: with only `pose 0.2` and `expressions 0.1`, ten tags come back 7 and 3. `-1` = no cap, `0` = off |
 
 | Reach for | When |

@@ -1085,13 +1085,22 @@ class TagsGenerator(BasePrompt):
             "n": (
                 "INT",
                 {
-                    "default": 15,
+                    "default": 10,
                     "min": 0,
                     "max": 100,
                     "tooltip": "How many tags to add, counted after "
                     "post-processing. 0 = auto: the length is drawn "
                     "from the corpus and generation also stops early "
                     "once nothing is clearly better than chance.",
+                },
+            ),
+            "auto": (
+                "BOOLEAN",
+                {
+                    "default": True,
+                    "tooltip": "Draw from every category with no share, "
+                    "ignoring the category toggles and shares below. "
+                    "Their values are kept for when it is switched off.",
                 },
             ),
             **{
@@ -1203,7 +1212,7 @@ class TagsGenerator(BasePrompt):
             "temperature": (
                 "FLOAT",
                 {
-                    "default": 1.0,
+                    "default": 1.3,
                     "min": 0.0,
                     "max": 5.0,
                     "step": 0.05,
@@ -1226,7 +1235,7 @@ class TagsGenerator(BasePrompt):
             "top_p": (
                 "FLOAT",
                 {
-                    "default": 0.95,
+                    "default": 1.0,
                     "min": 0.0,
                     "max": 1.0,
                     "step": 0.01,
@@ -1239,7 +1248,7 @@ class TagsGenerator(BasePrompt):
             "min_p": (
                 "FLOAT",
                 {
-                    "default": 0.05,
+                    "default": 0.0,
                     "min": 0.0,
                     "max": 1.0,
                     "step": 0.01,
@@ -1429,11 +1438,12 @@ class TagsGenerator(BasePrompt):
         cls,
         text: str,
         n: int = 10,
+        auto: bool = True,
         lift_threshold: float = 0.1,
         rating: str = "all",
-        temperature: float = 1.0,
+        temperature: float = 1.3,
         top_k: int = 50,
-        top_p: float = 0.95,
+        top_p: float = 1.0,
         min_p: float = 0.0,
         seed: int = 0,
         min_count: int = 100,
@@ -1461,6 +1471,10 @@ class TagsGenerator(BasePrompt):
         momentum, repetition_penalty = _legacy_knobs(
             categories, momentum, repetition_penalty
         )
+        if auto:
+            categories = dict.fromkeys(
+                (name + _SHARE_SUFFIX for name in CATEGORY_DEFAULTS), CATEGORY_UNCAPPED
+            )
         spec = _categories_spec(categories)
 
         def process(prompt):
@@ -1527,11 +1541,12 @@ class TagsGenerator(BasePrompt):
         cls,
         text: str,
         n: int = 10,
+        auto: bool = True,
         lift_threshold: float = 0.1,
         rating: str = "all",
-        temperature: float = 1.0,
+        temperature: float = 1.3,
         top_k: int = 50,
-        top_p: float = 0.95,
+        top_p: float = 1.0,
         min_p: float = 0.0,
         seed: int = 0,
         min_count: int = 100,
@@ -1551,6 +1566,7 @@ class TagsGenerator(BasePrompt):
         return (
             text,
             n,
+            auto,
             lift_threshold,
             rating,
             temperature,
