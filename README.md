@@ -38,11 +38,7 @@ first run, and it is meant to be edited: your copy is never overwritten.
 
 ## Example
 
-[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json)
-
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
-
-[`workflows/comfyui-generator-pack-tagsextractor-workflow.json`](workflows/comfyui-generator-pack-tagsextractor-workflow.json) starts from a sentence instead of tags: **Tags Extractor** in front of the same chain.
 
 ## Installation
 

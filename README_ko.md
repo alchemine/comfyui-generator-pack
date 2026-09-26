@@ -37,11 +37,7 @@
 
 ## 예시
 
-[`workflows/comfyui-generator-pack-workflow.json`](workflows/comfyui-generator-pack-workflow.json)
-
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
-
-[`workflows/comfyui-generator-pack-tagsextractor-workflow.json`](workflows/comfyui-generator-pack-tagsextractor-workflow.json)은 태그 대신 문장에서 시작합니다. 같은 체인 앞에 **Tags Extractor**를 둔 것입니다.
 
 ## 설치
 
