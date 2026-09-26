@@ -70,7 +70,7 @@ logger = artifact.get_logger()
 _WIKI_PATH = artifact.resource("wiki_definitions_v1.txt")
 # not committed (2MB); fetched from the data release on first use. Built
 # by playground/extract_wiki_definitions.py from the wiki dump.
-_WIKI_URL = artifact.url_for("data-v1.1.0", "wiki_definitions_v1.txt")
+_WIKI_URL = artifact.url_for("data-v2.0.0", "wiki_definitions_v1.txt")
 _WIKI_SHA256 = "e05988eb614bc6ccb0eb21334217ab6d54e36b2193a14267b613f5c31d0ebf28"
 
 MAX_WORDS = 3  # longest tag spelling looked up, in words

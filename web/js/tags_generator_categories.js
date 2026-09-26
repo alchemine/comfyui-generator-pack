@@ -28,11 +28,11 @@ function categoriesOf(node) {
         .filter(name => names.has(name + SHARE_SUFFIX));
 }
 
-function isLowQuality() {
+export function isLowQuality() {
     return (app.canvas?.ds?.scale || 1) <= 0.5;
 }
 
-function drawToggle(ctx, x, y, height, on) {
+export function drawToggle(ctx, x, y, height, on) {
     const width = height * 1.5;
     const radius = height * 0.36;
     if (!isLowQuality()) {
