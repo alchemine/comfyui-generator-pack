@@ -1094,6 +1094,15 @@ class TagsGenerator(BasePrompt):
                     "once nothing is clearly better than chance.",
                 },
             ),
+            "auto": (
+                "BOOLEAN",
+                {
+                    "default": False,
+                    "tooltip": "Draw from every category with no share, "
+                    "ignoring the category toggles and shares below. "
+                    "Their values are kept for when it is switched off.",
+                },
+            ),
             **{
                 key: widget
                 for name, share in CATEGORY_DEFAULTS.items()
@@ -1429,6 +1438,7 @@ class TagsGenerator(BasePrompt):
         cls,
         text: str,
         n: int = 10,
+        auto: bool = False,
         lift_threshold: float = 0.1,
         rating: str = "all",
         temperature: float = 1.0,
@@ -1461,6 +1471,10 @@ class TagsGenerator(BasePrompt):
         momentum, repetition_penalty = _legacy_knobs(
             categories, momentum, repetition_penalty
         )
+        if auto:
+            categories = dict.fromkeys(
+                (name + _SHARE_SUFFIX for name in CATEGORY_DEFAULTS), CATEGORY_UNCAPPED
+            )
         spec = _categories_spec(categories)
 
         def process(prompt):
@@ -1527,6 +1541,7 @@ class TagsGenerator(BasePrompt):
         cls,
         text: str,
         n: int = 10,
+        auto: bool = False,
         lift_threshold: float = 0.1,
         rating: str = "all",
         temperature: float = 1.0,
@@ -1551,6 +1566,7 @@ class TagsGenerator(BasePrompt):
         return (
             text,
             n,
+            auto,
             lift_threshold,
             rating,
             temperature,

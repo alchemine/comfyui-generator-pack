@@ -36,12 +36,14 @@ export function drawToggle(ctx, x, y, height, on) {
     const width = height * 1.5;
     const radius = height * 0.36;
     if (!isLowQuality()) {
+        // relative to the caller's alpha, so a greyed-out row stays grey
+        const alpha = ctx.globalAlpha;
         ctx.beginPath();
         ctx.roundRect(x + 4, y + 4, width - 8, height - 8, [height * 0.5]);
-        ctx.globalAlpha = app.canvas.editor_alpha * 0.25;
+        ctx.globalAlpha = alpha * 0.25;
         ctx.fillStyle = "rgba(255,255,255,0.45)";
         ctx.fill();
-        ctx.globalAlpha = app.canvas.editor_alpha;
+        ctx.globalAlpha = alpha;
     }
     ctx.beginPath();
     const knobX = on ? x + width - radius - 5 : x + radius + 5;
@@ -56,6 +58,12 @@ export function drawToggle(ctx, x, y, height, on) {
 function shareLabel(value) {
     if (value < 0) return "no cap";
     return `${Math.round(value * 100)}%`;
+}
+
+// auto draws from every category with no share, so while it is on the
+// rows are shown greyed out and ignore clicks; their values are kept
+function autoOn(node) {
+    return Boolean(node.widgets?.find(w => w.name === "auto")?.value);
 }
 
 function makeRow(node, boolWidget, shareWidget) {
@@ -79,6 +87,7 @@ function makeRow(node, boolWidget, shareWidget) {
         const inner = margin * 0.33;
         const midY = y + height * 0.5;
         ctx.save();
+        if (autoOn(node)) ctx.globalAlpha = app.canvas.editor_alpha * 0.4;
         ctx.strokeStyle = LiteGraph.WIDGET_OUTLINE_COLOR;
         ctx.fillStyle = LiteGraph.WIDGET_BGCOLOR;
         ctx.beginPath();
@@ -92,7 +101,7 @@ function makeRow(node, boolWidget, shareWidget) {
         x += this.toggleBounds[1] + inner;
 
         if (isLowQuality()) { ctx.restore(); return; }
-        if (!boolWidget.value) ctx.globalAlpha = app.canvas.editor_alpha * 0.4;
+        if (!boolWidget.value || autoOn(node)) ctx.globalAlpha = app.canvas.editor_alpha * 0.4;
 
         ctx.fillStyle = LiteGraph.WIDGET_SECONDARY_TEXT_COLOR || "#999";
         ctx.textAlign = "left";
@@ -118,6 +127,7 @@ function makeRow(node, boolWidget, shareWidget) {
 
     row.mouse = function (event, pos, node) {
         if (event.type !== "pointerdown") return false;
+        if (autoOn(node)) return true;           // auto: the rows are inert
         if (within(pos, this.toggleBounds)) {
             boolWidget.value = !boolWidget.value;
             node.setDirtyCanvas(true, true);
