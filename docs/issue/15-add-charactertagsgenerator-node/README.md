@@ -28,7 +28,7 @@
 - 인물 수 태그는 뽑힌 캐릭터의 성별을 센다. 성별마다 `1girl`, `2girls`, ..., `6+girls`(boy, other도 같다)를 쓰고, 한 성별이 2명 이상이면 `multiple girls`처럼 붙인다. 합쳐 1명이면 `solo`를 붙인다. 순서는 girl, boy, other다.
 - 출력은 인물 수 태그와 캐릭터 이름을 쉼표로 이은 문자열 하나다.
 - 이름의 괄호는 `TagsGenerator`처럼 `\(`, `\)`로 이스케이프한다. `astolfo (fate)`의 괄호가 가중치로 읽히지 않게 하기 위해서다.
-- 데이터 파일은 다른 표처럼 릴리스 `data-v1.1.0`에서 `artifact.ensure`로 받고 sha256으로 고정한다. 파일을 못 받으면 빈 문자열을 낸다.
+- 데이터 파일은 다른 표처럼 릴리스 `data-v2.0.0`에서 `artifact.ensure`로 받고 sha256으로 고정한다. 파일을 못 받으면 빈 문자열을 낸다.
 - `web/js/character_tags_generator.js`가 `girl`, `boy`, `other`를 한 줄 칩으로, `year_min`/`year_max`를 토글과 값 한 줄로 그린다. 원래 위젯은 숨기기만 하므로 저장과 백엔드 입력은 그대로다.
 - 모든 성별이 꺼지면 후보가 없으므로 빈 문자열을 낸다.
 

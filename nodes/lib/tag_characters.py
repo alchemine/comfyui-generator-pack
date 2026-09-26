@@ -17,7 +17,7 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 
 _PATH = artifact.resource("characters_v1.txt")
 # not committed (560KB); fetched from the data release on first use
-_URL = artifact.url_for("data-v1.1.0", "characters_v1.txt")
+_URL = artifact.url_for("data-v2.0.0", "characters_v1.txt")
 _SHA256 = "f5c8c3787759c411fe416490aff95df567a75f8d3d84db8f3d0151085fe1bbf4"
 
 Character = namedtuple("Character", "name posts first_year sex")

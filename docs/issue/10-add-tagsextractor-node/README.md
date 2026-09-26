@@ -23,7 +23,7 @@
 - 결과는 `_sort_by_category`로 종류별(인물, 몸, 표정, 자세, 의상, 배경)로 항상 정렬한다. `TagsGenerator`와 같은 함수와 순서이고 위젯은 없다.
 - 두 번째 출력 `table`은 매칭 하나마다 한 줄이다. 맞은 구간, 태그, 거쳐 온 철자(alias면), 포스트 수, 판정(`kept`, `below min_count`, `blacklisted`)을 적는다. 인물 수 태그는 구간 `(count)`로 적는다. `TagsConflictFilter`의 `table`과 같은 형식이다.
 - 철자가 하나도 잡지 못한 **두 단어 이상**의 구간은 Danbooru wiki 정의에서 찾는다. general 태그의 wiki 첫 문장을 `resources/wiki_definitions_v1.txt`(탭 구분, 23570행, 2MB)로 뽑아 세 번째 FTS5 테이블 `definitions`에 넣는다. 구가 든 정의 중 포스트 수가 가장 큰 태그를 고르고 `min_count` 밑은 뺀다. 한 단어 구간과 기능어(`and`, `in`, `of` 등)만으로 된 구간은 wiki를 타지 않는다. `chair`가 `sitting`의 정의에 있듯 정의는 주변 사물도 언급하기 때문이다. 부정 구간도 타지 않는다.
-- wiki 파일은 `playground/extract_wiki_definitions.py`(gitignore 안)가 wiki 덤프에서 만든다. `tag_veto.npz`처럼 릴리스 `data-v1.1.0`에서 `artifact.ensure`로 받고 sha256으로 고정한다. 파일을 못 받으면 wiki 단계만 빠지고 철자 검색은 그대로다.
+- wiki 파일은 `playground/extract_wiki_definitions.py`(gitignore 안)가 wiki 덤프에서 만든다. `tag_veto.npz`처럼 릴리스 `data-v2.0.0`에서 `artifact.ensure`로 받고 sha256으로 고정한다. 파일을 못 받으면 wiki 단계만 빠지고 철자 검색은 그대로다.
 - wiki 단계의 한계를 적어 둔다. 정의에 우연히 들어 있는 구도 잡힌다. `on surface`는 `condensation`, `looking out of`는 `sideways glance`가 된다. 표의 `via` 열에 `wiki`라고 적히므로 어디서 왔는지는 보인다.
 - 인물 수가 최종 판정이다. 인물 수는 검색 전에 문장 전체에서 먼저 센다. `solo`면 철자 단계와 wiki 단계 모두 `another`가 들어간 태그를 후보에서 빼고 다음 순위(다음 철자, 더 짧은 구간, 다음 정의)를 쓴다. 버리고 끝내지 않는다. `subject`를 끄면 인물 수 태그는 맨 마지막에만 출력에서 빠지고(표에는 `subject off`), 그 전까지의 판정에는 그대로 쓰인다.
 - `TagsExtractor` 노드를 `nodes/tags.py`에 추가하고 `__init__.py`에 등록한다. 입력은 `text`(자연어), `max_tags`, `min_count`, `subject`, `translate`, `blacklist`, 출력은 `processed_text`(쉼표로 이은 태그)와 `table`이다. `subject`를 끄면 인물 수 태그를 붙이지 않는다. 사람 명사는 어느 쪽이든 검색하지 않는다.
