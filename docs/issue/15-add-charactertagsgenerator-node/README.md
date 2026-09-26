@@ -17,14 +17,14 @@
 | 위젯 | 종류 | 기본값 | 동작 |
 |---|---|---|---|
 | `n` | INT | 1 | 뽑을 캐릭터 수 |
-| `girl`, `boy`, `other` | BOOLEAN | `True`, `False`, `False` | 후보로 둘 성별. JS가 `sex` 한 줄 칩으로 그린다 |
+| `girl`, `boy`, `other` | BOOLEAN | `True`, `False`, `False` | 후보로 둘 성별. JS가 `sex` 한 줄 칩으로 그리고, 마지막 하나는 끌 수 없다 |
 | `subject` | BOOLEAN | `True` | 인물 수 태그를 앞에 붙인다 |
 | `year_min`, `year_min_value` | BOOLEAN, INT | `False`, 2020 | 켜면 `first_year >= year_min_value`만 남긴다 |
 | `year_max`, `year_max_value` | BOOLEAN, INT | `False`, 2025 | 켜면 `first_year <= year_max_value`만 남긴다 |
-| `min_count` | INT | 500 | `posts >= min_count`만 남긴다 |
+| `min_count` | INT | 200 | `posts >= min_count`만 남긴다 |
 | `seed` | INT | 0 | 뽑기 재현 |
 
-- 뽑기는 `posts`에 비례한 가중치로 중복 없이 한다. 후보가 `n`보다 적으면 후보 전부를 낸다.
+- 뽑기는 후보 안에서 균등하게, 중복 없이 한다. 후보가 `n`보다 적으면 후보 전부를 낸다.
 - 인물 수 태그는 뽑힌 캐릭터의 성별을 센다. 성별마다 `1girl`, `2girls`, ..., `6+girls`(boy, other도 같다)를 쓰고, 한 성별이 2명 이상이면 `multiple girls`처럼 붙인다. 합쳐 1명이면 `solo`를 붙인다. 순서는 girl, boy, other다.
 - 출력은 인물 수 태그와 캐릭터 이름을 쉼표로 이은 문자열 하나다.
 - 이름의 괄호는 `TagsGenerator`처럼 `\(`, `\)`로 이스케이프한다. `astolfo (fate)`의 괄호가 가중치로 읽히지 않게 하기 위해서다.

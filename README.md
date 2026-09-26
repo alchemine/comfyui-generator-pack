@@ -71,7 +71,7 @@ off` is in the definition of `undressing`. The tags come back grouped by kind, i
 
 **Tags Generator** — the sampler above.
 
-**Character Tags Generator** — draws `n` Danbooru character tags, weighted by post count, from the 16,943
+**Character Tags Generator** — draws `n` Danbooru character tags, all equally likely, from the 16,943
 characters with at least 100 posts up to 2025-09. `sex` keeps girls, boys or others — whichever of `1girl`, `1boy`,
 `1other` sits on most of the character's solo posts, `other` on a tie. `year_min` and `year_max` limit the year of
 the character's first post, `min_count` its post count. `subject` puts the person count in front: `1girl, solo` for

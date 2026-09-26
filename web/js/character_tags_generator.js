@@ -36,17 +36,16 @@ const within = (pos, bounds) =>
     bounds && pos[0] >= bounds[0] && pos[0] <= bounds[0] + bounds[1];
 
 function makeSexRow(widgets) {
-    // the row takes the first toggle's slot and answers for it, so the
-    // widget count, and with it widgets_values, stays as declared
-    const [first] = widgets;
+    // an extra widget that is only drawn: the toggles stay in node.widgets
+    // and serialise themselves, and serialize: false keeps this one out of
+    // both widgets_values and the prompt
     const row = {
         type: "custom",
-        name: first.name,
-        options: first.options,
-        tooltip: first.options?.tooltip ?? "",
-        get value() { return first.value; },
-        set value(v) { first.value = v; },
-        serializeValue() { return first.value; },
+        name: "sex",
+        value: null,
+        serialize: false,
+        options: { serialize: false },
+        tooltip: widgets[0].options?.tooltip ?? "",
         computeSize(width) { return [width, LiteGraph.NODE_WIDGET_HEIGHT]; },
     };
     row.draw = function (ctx, node, width, y, height) {
@@ -81,6 +80,8 @@ function makeSexRow(widgets) {
         if (event.type !== "pointerdown") return false;
         const i = (this.chips ?? []).findIndex(b => within(pos, b));
         if (i < 0) return false;
+        // at least one stays on: the last one on cannot be switched off
+        if (widgets[i].value && widgets.filter(w => w.value).length === 1) return true;
         widgets[i].value = !widgets[i].value;
         node.setDirtyCanvas(true, true);
         return true;
@@ -164,8 +165,8 @@ app.registerExtension({
             const byName = name => this.widgets?.find(w => w.name === name);
             const sexes = SEXES.map(byName);
             if (sexes.every(Boolean)) {
-                sexes.slice(1).forEach(hide);
-                this.widgets[this.widgets.indexOf(sexes[0])] = makeSexRow(sexes);
+                sexes.forEach(hide);
+                this.widgets.splice(this.widgets.indexOf(sexes[0]), 0, makeSexRow(sexes));
             }
             for (const name of YEARS) {
                 const toggle = byName(name);

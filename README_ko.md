@@ -70,7 +70,7 @@ Tags Generator에 넣어 장면을 키우면 됩니다.
 **Tags Generator** — 위에서 설명한 샘플러.
 
 **Character Tags Generator** — 2025-09까지 게시물이 100개 이상인 캐릭터 16,943명 중에서 Danbooru 캐릭터 태그를
-`n`개 뽑습니다. 게시물 수에 비례해서 뽑습니다. `sex`는 girl, boy, other 중 남길 성별입니다. 캐릭터의 solo 게시물에
+`n`개 뽑습니다. 후보는 모두 같은 확률로 뽑힙니다. `sex`는 girl, boy, other 중 남길 성별입니다. 캐릭터의 solo 게시물에
 `1girl`, `1boy`, `1other` 중 가장 많이 붙은 쪽이 그 성별이고, 동점이면 `other`입니다. `year_min`과 `year_max`는
 캐릭터의 첫 게시 연도를, `min_count`는 게시물 수를 제한합니다. `subject`를 켜면 인원 태그를 앞에 붙입니다. 여자
 한 명은 `1girl, solo`, 여자와 남자 한 명씩은 `1girl, 1boy`입니다.

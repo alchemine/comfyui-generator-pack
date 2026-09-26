@@ -6,7 +6,6 @@ ReplaceUnderscores carry no node surface: TagsGenerator runs its draw
 through that pipeline before counting what survived.
 """
 
-import heapq
 import re
 import random
 import textwrap
@@ -1606,9 +1605,8 @@ class CharacterTagsGenerator(BasePrompt):
     The pool is resources/characters_v1.txt (see tag_characters): every
     character with at least 100 posts up to 2025-09, with its post
     count, the year of its first post and its sex. The widgets narrow
-    the pool, and n characters are drawn from what is left, weighted by
-    post count and without repeats, so well known characters come up
-    more often and the seed makes the draw reproducible.
+    the pool, and n characters are drawn from what is left, uniformly and
+    without repeats; the seed makes the draw reproducible.
 
     year_min and year_max are toggles with a value beside them; see
     web/js/character_tags_generator.js, which also draws girl, boy and
@@ -1685,7 +1683,7 @@ class CharacterTagsGenerator(BasePrompt):
             "min_count": (
                 "INT",
                 {
-                    "default": 500,
+                    "default": 200,
                     "min": 100,
                     "max": 100000,
                     "step": 100,
@@ -1724,7 +1722,7 @@ class CharacterTagsGenerator(BasePrompt):
         year_min_value: int = 2020,
         year_max: bool = False,
         year_max_value: int = 2025,
-        min_count: int = 500,
+        min_count: int = 200,
         seed: int = 0,
     ) -> tuple[str]:
         """Draw n character tags from the filtered pool."""
@@ -1740,10 +1738,7 @@ class CharacterTagsGenerator(BasePrompt):
             and not (year_min and c.first_year < year_min_value)
             and not (year_max and c.first_year > year_max_value)
         ]
-        # weighted sampling without replacement: each character keeps the
-        # key u ** (1 / posts) and the n largest keys win
-        rng = random.Random(seed)
-        drawn = heapq.nlargest(n, pool, key=lambda c: rng.random() ** (1.0 / c.posts))
+        drawn = random.Random(seed).sample(pool, min(n, len(pool)))
         tags = [_escape_brackets(c.name) for c in drawn]
         if subject and drawn:
             tags = _subject_tags([c.sex for c in drawn]) + tags
