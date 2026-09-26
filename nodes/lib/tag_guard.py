@@ -206,7 +206,7 @@ def pair_stats(tag_a, tag_b):
 # rather than inserted for the same reason.
 
 BUCKETS = (
-    "characters",
+    "subject",
     "clothes",
     "body",
     "expression",
@@ -221,7 +221,7 @@ BUCKETS = (
 # category (categories_v1.0.json) -> bucket. creatures folds into
 # objects, which is where the old mapping put cats, dogs and elves too.
 _CATEGORY_BUCKET = {
-    "characters": "characters",
+    "characters": "subject",
     "expressions": "expression",
     "pose": "pose",
     "clothes": "clothes",
@@ -255,7 +255,7 @@ _STATIC_BUCKET = {
 def bucket_of(tag):
     """Return the bucket name for a normalized tag."""
     if is_subject(tag):
-        return "characters"
+        return "subject"
 
     labels = tag_category.load_labels()
     if labels:

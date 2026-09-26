@@ -62,7 +62,7 @@ RATINGS = ("general", "sensitive", "questionable", "explicit")
 # time, so a rename there only costs the widget its effect, never an
 # error.
 CATEGORY_DEFAULTS = {
-    "characters": 0.1,
+    "subject": 0.1,
     "pose": 0.3,
     "expressions": 0.2,
     "body": 0.1,
@@ -75,12 +75,13 @@ CATEGORY_DEFAULTS = {
 # each, so background at 0.1 is a tenth of the output for the whole
 # setting -- objects alone will happily fill a prompt with furniture.
 #
-# characters is deliberately NOT in that group. The label file files the
-# subject itself there -- 1girl, 1boy, solo, 2girls -- not just who else
+# subject is the characters category, and deliberately NOT in that group.
+# The label file files the subject itself there -- 1girl, 1boy, solo, 2girls -- not just who else
 # is in the scene, and those tags anchor everything downstream: without a
 # gender anchor one male pick pulls the whole draw after it. Sharing the
 # scene's single slot left them to lose a coin toss against furniture.
 CATEGORY_GROUPS = {
+    "subject": ("characters",),
     "background": ("background", "objects", "compositions"),
 }
 
@@ -935,7 +936,7 @@ class TagsGenerator(BasePrompt):
     hands its share to the ones still on rather than shrinking the
     result. -1 means allowed with no share of its own, 0 switches the
     category off, and the defaults -- pose 0.3, clothes 0.2,
-    expressions 0.2, characters 0.1, body 0.1, background 0.1 -- balance
+    expressions 0.2, subject 0.1, body 0.1, background 0.1 -- balance
     the node out of the box.
 
     Counts are split by largest remainder, so they add up to exactly
@@ -958,7 +959,7 @@ class TagsGenerator(BasePrompt):
     Three of them are easy to misread. pose owns the sex act groups, but
     explicitness is rating's job, not this one -- leaving pose on at
     rating "general" cannot surface them. clothes owns the job tags, so
-    turning it off also drops "office lady" and "nurse". characters owns
+    turning it off also drops "office lady" and "nurse". subject owns
     the subject itself, not just the company it keeps: it decides
     whether "1girl" and "solo" can appear at all, which is what anchors
     the gender of everything drawn after them -- and, less happily, the
@@ -1581,7 +1582,7 @@ class ClassifyTags(BasePrompt):
 
     Examples:
         Input: text="1boy, serafuku, sitting, smile, classroom"
-        Output: characters="1boy", clothes="serafuku", pose="sitting",
+        Output: subject="1boy", clothes="serafuku", pose="sitting",
                 expression="smile", background="classroom", ...
     """
 

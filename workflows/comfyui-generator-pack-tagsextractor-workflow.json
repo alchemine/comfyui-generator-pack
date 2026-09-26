@@ -780,20 +780,20 @@
           "link": null
         },
         {
-          "localized_name": "characters",
-          "name": "characters",
+          "localized_name": "subject",
+          "name": "subject",
           "type": "BOOLEAN",
           "widget": {
-            "name": "characters"
+            "name": "subject"
           },
           "link": null
         },
         {
-          "localized_name": "characters_share",
-          "name": "characters_share",
+          "localized_name": "subject_share",
+          "name": "subject_share",
           "type": "FLOAT",
           "widget": {
-            "name": "characters_share"
+            "name": "subject_share"
           },
           "link": null
         },

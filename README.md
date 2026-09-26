@@ -11,9 +11,9 @@ Feed a prompt into **Tags Generator**, read the extended prompt out of `processe
 | Widget | What it does |
 |--------|--------------|
 | `n` | How many tags to add, counted after post-processing. `0` = draw the length from the corpus and stop once nothing beats chance |
-| `characters` / `pose` / `expressions` / `body` / `clothes` / `background` | A toggle and a `_share` each. The share is relative to the categories still on: with only `pose 0.2` and `expressions 0.1`, ten tags come back 7 and 3. `-1` = no cap, `0` = off |
+| `subject` / `pose` / `expressions` / `body` / `clothes` / `background` | A toggle and a `_share` each. The share is relative to the categories still on: with only `pose 0.2` and `expressions 0.1`, ten tags come back 7 and 3. `-1` = no cap, `0` = off |
 
-The shares are what keep one axis from taking the draw over, since every pick conditions the next. `characters`
+The shares are what keep one axis from taking the draw over, since every pick conditions the next. `subject`
 owns the subject itself (`1girl`, `solo`), so it anchors the gender of everything after it; `background`
 carries objects and compositions on its one share.
 
@@ -74,7 +74,7 @@ off` is in the definition of `undressing`. The tags come back grouped by kind, i
 **Tags Conflict Filter** — drops tags contradicting the fixed ones, by co-occurrence lift rather than a
 hand-written conflict list. Tags Generator's veto as a node of its own, for tags from anywhere else.
 
-**Classify Tags** — splits a prompt into characters, clothes, body, expression, pose, background, objects,
+**Classify Tags** — splits a prompt into subject, clothes, body, expression, pose, background, objects,
 nsfw, others.
 
 **Group Tags** — one themed group per line; tags sharing a last (or first) word gather together, person tags
