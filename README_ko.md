@@ -11,9 +11,9 @@
 | 위젯 | 하는 일 |
 |------|---------|
 | `n` | 추가할 태그 수, 후처리를 거친 뒤 기준. `0`이면 길이를 코퍼스에서 뽑고 우연 이상으로 나을 게 없으면 멈춥니다 |
-| `characters` / `pose` / `expressions` / `body` / `clothes` / `background` | 각각 토글과 `_share`. share는 켜져 있는 카테고리끼리의 상대 비율입니다. `pose 0.2`, `expressions 0.1`만 켜고 10개를 요청하면 7개와 3개. `-1` = 무제한, `0` = 끄기 |
+| `subject` / `pose` / `expressions` / `body` / `clothes` / `background` | 각각 토글과 `_share`. share는 켜져 있는 카테고리끼리의 상대 비율입니다. `pose 0.2`, `expressions 0.1`만 켜고 10개를 요청하면 7개와 3개. `-1` = 무제한, `0` = 끄기 |
 
-매 선택이 다음 선택의 조건이 되기 때문에, share가 한 축의 독주를 막습니다. `characters`는 주체 자체(`1girl`,
+매 선택이 다음 선택의 조건이 되기 때문에, share가 한 축의 독주를 막습니다. `subject`는 주체 자체(`1girl`,
 `solo`)를 담당해 뒤따르는 모든 태그의 성별을 고정하고, `background`는 objects·compositions까지 한 몫으로
 짊어집니다.
 
@@ -72,7 +72,7 @@ Tags Generator에 넣어 장면을 키우면 됩니다.
 **Tags Conflict Filter** — 수작업 충돌 목록 대신 동시출현 lift로 고정 태그와 모순되는 태그를 제거합니다. Tag
 Generator의 거부 로직을 독립 노드로 꺼낸 것이라, 출처가 어디든 쓸 수 있습니다.
 
-**Classify Tags** — 프롬프트를 characters, clothes, body, expression, pose, background, objects, nsfw,
+**Classify Tags** — 프롬프트를 subject, clothes, body, expression, pose, background, objects, nsfw,
 others로 나눕니다.
 
 **Group Tags** — 주제별로 한 줄에 한 그룹. 마지막(또는 첫) 단어가 같은 태그끼리 모이고 인물 태그가 맨 앞에
