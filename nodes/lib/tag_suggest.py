@@ -46,10 +46,8 @@ _MIN_EXPECTED = 15.0
 # nothing to do with each other -- mechanical arms next to oversized
 # wings next to a leg tattoo. At 1.0 they cohere into one scene, at the
 # price of running away with it: "chair" pulls "office chair" pulls
-# "computer keyboard" and the prompt stops mattering. The category
-# quotas now cap any single axis, which is what used to make the high
-# end dangerous, so this sits in the middle rather than low.
-DEFAULT_MOMENTUM = 0.5
+# "computer keyboard" and the prompt stops mattering.
+DEFAULT_MOMENTUM = 0.2
 
 # How much the odds of a tag are divided by for each tag already picked
 # that shares one of its slots (see TagSuggest.slots). 2.0 halves them

@@ -48,7 +48,7 @@ def test_auto_follows_n(pack):
     assert names[names.index("n") + 1] == "auto"
     kind, options = required["auto"]
     assert kind == "BOOLEAN"
-    assert options["default"] is False
+    assert options["default"] is True
 
 
 def test_auto_on_lifts_every_cap(spec_of):
