@@ -1,15 +1,16 @@
 """Nodes in GeneratorPack/Tags.
 
-Five classes are registered as nodes -- TagsExtractor, TagsGenerator,
-TagsConflictFilter, ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
+Six classes are registered as nodes -- TagsExtractor, TagsGenerator,
+CharacterTagsGenerator, TagsConflictFilter, ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
 ReplaceUnderscores carry no node surface: TagsGenerator runs its draw
 through that pipeline before counting what survived.
 """
 
+import heapq
 import re
 import random
 import textwrap
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import wraps
 
 import yaml
@@ -28,6 +29,7 @@ from .lib.tag_guard import (
     classify_tags,
 )
 from .lib.tag_category import load_labels
+from .lib.tag_characters import load_characters
 from .lib.tag_veto import filter_by_veto, veto_available
 from .lib.tag_search import search, format_table
 from .lib.tag_suggest import (
@@ -1568,6 +1570,184 @@ class TagsGenerator(BasePrompt):
             order_tags,
             tuple(sorted(categories.items())),
         )
+
+
+# CharacterTagsGenerator's sex widgets, in the order their subject tags
+# are written
+SEXES = ("girl", "boy", "other")
+
+
+def _subject_tags(sexes):
+    """Danbooru person count tags for a list of sexes.
+
+    Examples:
+        Input: ["girl"]
+        Output: ["1girl", "solo"]
+
+        Input: ["girl", "girl", "boy"]
+        Output: ["2girls", "multiple girls", "1boy"]
+    """
+    counts = Counter(sexes)
+    tags = []
+    for sex in SEXES:
+        k = counts[sex]
+        if k == 1:
+            tags.append("1" + sex)
+        elif k > 1:
+            tags += ["%s%ss" % (k if k < 6 else "6+", sex), "multiple %ss" % sex]
+    if len(sexes) == 1:
+        tags.append("solo")
+    return tags
+
+
+class CharacterTagsGenerator(BasePrompt):
+    """Draw Danbooru character tags.
+
+    The pool is resources/characters_v1.txt (see tag_characters): every
+    character with at least 100 posts up to 2025-09, with its post
+    count, the year of its first post and its sex. The widgets narrow
+    the pool, and n characters are drawn from what is left, weighted by
+    post count and without repeats, so well known characters come up
+    more often and the seed makes the draw reproducible.
+
+    year_min and year_max are toggles with a value beside them; see
+    web/js/character_tags_generator.js, which also draws girl, boy and
+    other as one row.
+
+    Examples:
+        Input: n=1, girl=True, subject=True
+        Output: "1girl, solo, hatsune miku"
+    """
+
+    INPUT_TYPES = lambda: {
+        "required": {
+            "n": (
+                "INT",
+                {
+                    "default": 1,
+                    "min": 1,
+                    "max": 10,
+                    "tooltip": "How many characters to draw.",
+                },
+            ),
+            **{
+                sex: (
+                    "BOOLEAN",
+                    {
+                        "default": sex == "girl",
+                        "tooltip": "Draw characters whose solo posts are "
+                        "mostly 1%s. Characters with a tie or no solo post "
+                        "count as other." % sex,
+                    },
+                )
+                for sex in SEXES
+            },
+            "subject": (
+                "BOOLEAN",
+                {
+                    "default": True,
+                    "tooltip": "Put the person count of the drawn characters "
+                    "in front: 1girl and solo for one girl, 1girl and "
+                    "1boy for a girl and a boy.",
+                },
+            ),
+            **{
+                key: widget
+                for name, year in (("year_min", 2020), ("year_max", 2025))
+                for key, widget in (
+                    (
+                        name,
+                        (
+                            "BOOLEAN",
+                            {
+                                "default": False,
+                                "tooltip": "Limit the year of the "
+                                "character's first post.",
+                            },
+                        ),
+                    ),
+                    (
+                        name + "_value",
+                        (
+                            "INT",
+                            {
+                                "default": year,
+                                "min": 2005,
+                                "max": 2025,
+                                "tooltip": "%s year of the first post, "
+                                "inclusive. Ignored while the toggle is off."
+                                % ("Earliest" if name == "year_min" else "Latest"),
+                            },
+                        ),
+                    ),
+                )
+            },
+            "min_count": (
+                "INT",
+                {
+                    "default": 500,
+                    "min": 100,
+                    "max": 100000,
+                    "step": 100,
+                    "tooltip": "Only characters with at least this many "
+                    "posts. The pool stops at 100.",
+                },
+            ),
+            "seed": (
+                "INT",
+                {
+                    "default": 0,
+                    "min": 0,
+                    "max": 0xFFFFFFFFFFFFFFFF,
+                    "control_after_generate": True,
+                    "tooltip": "Reproducibility. The same seed and settings "
+                    "always draw the same characters.",
+                },
+            ),
+        },
+    }
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("processed_text",)
+    FUNCTION = "execute"
+    CATEGORY = "GeneratorPack/Tags"
+
+    @classmethod
+    @exception_handler
+    def execute(
+        cls,
+        n: int = 1,
+        girl: bool = True,
+        boy: bool = False,
+        other: bool = False,
+        subject: bool = True,
+        year_min: bool = False,
+        year_min_value: int = 2020,
+        year_max: bool = False,
+        year_max_value: int = 2025,
+        min_count: int = 500,
+        seed: int = 0,
+    ) -> tuple[str]:
+        """Draw n character tags from the filtered pool."""
+        characters = load_characters()
+        if not characters:
+            return ("",)
+        sexes = {s for s, on in zip(SEXES, (girl, boy, other)) if on}
+        pool = [
+            c
+            for c in characters
+            if c.sex in sexes
+            and c.posts >= min_count
+            and not (year_min and c.first_year < year_min_value)
+            and not (year_max and c.first_year > year_max_value)
+        ]
+        # weighted sampling without replacement: each character keeps the
+        # key u ** (1 / posts) and the n largest keys win
+        rng = random.Random(seed)
+        drawn = heapq.nlargest(n, pool, key=lambda c: rng.random() ** (1.0 / c.posts))
+        tags = [_escape_brackets(c.name) for c in drawn]
+        if subject and drawn:
+            tags = _subject_tags([c.sex for c in drawn]) + tags
+        return (", ".join(tags),)
 
 
 class ClassifyTags(BasePrompt):
