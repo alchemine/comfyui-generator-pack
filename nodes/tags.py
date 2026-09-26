@@ -1,7 +1,7 @@
 """Nodes in GeneratorPack/Tags.
 
-Four classes are registered as nodes -- TagsGenerator, TagsConflictFilter,
-ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
+Six classes are registered as nodes -- TagsExtractor, TagsGenerator,
+CharacterTagsGenerator, TagsConflictFilter, ClassifyTags and GroupTags. ProcessTags, FilterTags, FilterSubtags and
 ReplaceUnderscores carry no node surface: TagsGenerator runs its draw
 through that pipeline before counting what survived.
 """
@@ -9,10 +9,15 @@ through that pipeline before counting what survived.
 import re
 import random
 import textwrap
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import wraps
 
 import yaml
+
+try:
+    import googletrans
+except ImportError:  # only TagsExtractor's translate widget needs it
+    googletrans = None
 
 from .lib import artifact
 from .lib.utils import get_logger, exception_handler, standardize_prompt
@@ -23,7 +28,9 @@ from .lib.tag_guard import (
     classify_tags,
 )
 from .lib.tag_category import load_labels
+from .lib.tag_characters import load_characters
 from .lib.tag_veto import filter_by_veto, veto_available
+from .lib.tag_search import search, format_table
 from .lib.tag_suggest import (
     suggest_tags,
     suggest_available,
@@ -56,7 +63,7 @@ RATINGS = ("general", "sensitive", "questionable", "explicit")
 # time, so a rename there only costs the widget its effect, never an
 # error.
 CATEGORY_DEFAULTS = {
-    "characters": 0.1,
+    "subject": 0.1,
     "pose": 0.3,
     "expressions": 0.2,
     "body": 0.1,
@@ -69,12 +76,13 @@ CATEGORY_DEFAULTS = {
 # each, so background at 0.1 is a tenth of the output for the whole
 # setting -- objects alone will happily fill a prompt with furniture.
 #
-# characters is deliberately NOT in that group. The label file files the
-# subject itself there -- 1girl, 1boy, solo, 2girls -- not just who else
+# subject is the characters category, and deliberately NOT in that group.
+# The label file files the subject itself there -- 1girl, 1boy, solo, 2girls -- not just who else
 # is in the scene, and those tags anchor everything downstream: without a
 # gender anchor one male pick pulls the whole draw after it. Sharing the
 # scene's single slot left them to lose a coin toss against furniture.
 CATEGORY_GROUPS = {
+    "subject": ("characters",),
     "background": ("background", "objects", "compositions"),
 }
 
@@ -399,6 +407,139 @@ class BasePrompt:
 #################################################################
 # Nodes
 #################################################################
+class TagsExtractor(BasePrompt):
+    """Turn a sentence into the Danbooru tags it names.
+
+    Every run of up to three words is looked up against the tag
+    vocabulary and its aliases (tag_search), so the output holds only
+    real tags, only ones the sentence said, and nothing the sentence
+    negated. The people in it are counted instead, into 1girl, 2boys,
+    solo. The tags come back grouped by kind, in TagsGenerator's order.
+    `table` lists every match with the spelling it came in through and
+    the tag's post count, which is where to look when a tag seems to
+    come from nowhere. It is the deterministic front end for a prompt written in
+    prose: feed the result to TagsGenerator to grow the scene, or to
+    TagsConflictFilter to check it against fixed tags.
+
+    Examples:
+        Input: text="a girl sitting on a chair by the window at sunset"
+        Output: processed_text="1girl, solo, sitting, on chair, window, sunset"
+    """
+
+    INPUT_TYPES = lambda: {
+        "required": {
+            "text": (
+                "STRING",
+                {
+                    "multiline": True,
+                    "default": "",
+                    "tooltip": "A sentence or two describing the scene. "
+                    "Words the vocabulary does not spell are skipped; "
+                    "'no', 'not' and 'without' drop what follows them.",
+                },
+            ),
+            "max_tags": (
+                "INT",
+                {
+                    "default": 20,
+                    "min": 1,
+                    "max": 100,
+                    "tooltip": "At most this many tags, in reading order.",
+                },
+            ),
+            "min_count": (
+                "INT",
+                {
+                    "default": 100,
+                    "min": 0,
+                    "max": 1000000,
+                    "step": 100,
+                    "tooltip": "Ignore tags with fewer than this many posts. "
+                    "100 is Tags Generator's vocabulary floor; the "
+                    "dump goes down to 20. Raise it when a rare tag's "
+                    "alias catches a phrase -- 'taking off' reaches "
+                    "takeoff (130 posts) through 'take-off'.",
+                },
+            ),
+            "subject": (
+                "BOOLEAN",
+                {
+                    "default": True,
+                    "tooltip": "Put the person count in front: 'a girl' is "
+                    "1girl and solo, 'a girl and two boys' is 1girl "
+                    "and 2boys. The person nouns are never searched "
+                    "either way.",
+                },
+            ),
+            "translate": (
+                "BOOLEAN",
+                {
+                    "default": False,
+                    "tooltip": "Run the text through Google Translate into "
+                    "English first, whatever language it is in "
+                    "(googletrans, one request per run). Rewrites "
+                    "English too, which straightens grammar the "
+                    "search would trip on.",
+                },
+            ),
+        },
+        "optional": {
+            "blacklist": (
+                "STRING",
+                {
+                    "default": "",
+                    "multiline": False,
+                    "tooltip": "Regex matched against each found tag in "
+                    "spaced form, case-insensitively: 'male focus' "
+                    "drops the tag the alias 'man' reaches. Dropped "
+                    "before max_tags is counted.",
+                },
+            ),
+        },
+    }
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("processed_text", "table")
+    FUNCTION = "execute"
+    CATEGORY = "GeneratorPack/Tags"
+
+    # async, so the translation is awaited on the executor's own loop; the
+    # sync decorators the other nodes wear would hide the coroutine from it
+    @classmethod
+    async def execute(
+        cls,
+        text: str,
+        max_tags: int = 20,
+        min_count: int = 100,
+        subject: bool = True,
+        translate: bool = False,
+        blacklist: str = "",
+    ) -> tuple[str, str]:
+        """Search the tag vocabulary for what the text names."""
+        if translate:
+            if googletrans is None:
+                raise RuntimeError(
+                    "translate needs googletrans: pip install googletrans"
+                )
+            text = (await googletrans.Translator().translate(text, dest="en")).text
+        pattern = blacklist_pattern(blacklist)
+        compiled = re.compile(pattern, re.IGNORECASE) if pattern else None
+        tags, matches = search(text, max_tags, compiled, subject, min_count)
+        tags = _sort_by_category(tags, CATEGORY_ORDER, lambda t: (t,))
+        return (", ".join(tags), format_table(matches, min_count))
+
+    @classmethod
+    def IS_CHANGED(
+        cls,
+        text: str,
+        max_tags: int = 20,
+        min_count: int = 100,
+        subject: bool = True,
+        translate: bool = False,
+        blacklist: str = "",
+    ) -> tuple:
+        return (text, max_tags, min_count, subject, translate, blacklist)
+
+
 class ProcessTags(BasePrompt):
     """Full process of tags from a prompt.
 
@@ -796,7 +937,7 @@ class TagsGenerator(BasePrompt):
     hands its share to the ones still on rather than shrinking the
     result. -1 means allowed with no share of its own, 0 switches the
     category off, and the defaults -- pose 0.3, clothes 0.2,
-    expressions 0.2, characters 0.1, body 0.1, background 0.1 -- balance
+    expressions 0.2, subject 0.1, body 0.1, background 0.1 -- balance
     the node out of the box.
 
     Counts are split by largest remainder, so they add up to exactly
@@ -819,7 +960,7 @@ class TagsGenerator(BasePrompt):
     Three of them are easy to misread. pose owns the sex act groups, but
     explicitness is rating's job, not this one -- leaving pose on at
     rating "general" cannot surface them. clothes owns the job tags, so
-    turning it off also drops "office lady" and "nurse". characters owns
+    turning it off also drops "office lady" and "nurse". subject owns
     the subject itself, not just the company it keeps: it decides
     whether "1girl" and "solo" can appear at all, which is what anchors
     the gender of everything drawn after them -- and, less happily, the
@@ -1430,6 +1571,180 @@ class TagsGenerator(BasePrompt):
         )
 
 
+# CharacterTagsGenerator's sex widgets, in the order their subject tags
+# are written
+SEXES = ("girl", "boy", "other")
+
+
+def _subject_tags(sexes):
+    """Danbooru person count tags for a list of sexes.
+
+    Examples:
+        Input: ["girl"]
+        Output: ["1girl", "solo"]
+
+        Input: ["girl", "girl", "boy"]
+        Output: ["2girls", "multiple girls", "1boy"]
+    """
+    counts = Counter(sexes)
+    tags = []
+    for sex in SEXES:
+        k = counts[sex]
+        if k == 1:
+            tags.append("1" + sex)
+        elif k > 1:
+            tags += ["%s%ss" % (k if k < 6 else "6+", sex), "multiple %ss" % sex]
+    if len(sexes) == 1:
+        tags.append("solo")
+    return tags
+
+
+class CharacterTagsGenerator(BasePrompt):
+    """Draw Danbooru character tags.
+
+    The pool is resources/characters_v1.txt (see tag_characters): every
+    character with at least 100 posts up to 2025-09, with its post
+    count, the year of its first post and its sex. The widgets narrow
+    the pool, and n characters are drawn from what is left, uniformly and
+    without repeats; the seed makes the draw reproducible.
+
+    year_min and year_max are toggles with a value beside them; see
+    web/js/character_tags_generator.js, which also draws girl, boy and
+    other as one row.
+
+    Examples:
+        Input: n=1, girl=True, subject=True
+        Output: "1girl, solo, hatsune miku"
+    """
+
+    INPUT_TYPES = lambda: {
+        "required": {
+            "n": (
+                "INT",
+                {
+                    "default": 1,
+                    "min": 1,
+                    "max": 10,
+                    "tooltip": "How many characters to draw.",
+                },
+            ),
+            **{
+                sex: (
+                    "BOOLEAN",
+                    {
+                        "default": sex == "girl",
+                        "tooltip": "Draw characters whose solo posts are "
+                        "mostly 1%s. Characters with a tie or no solo post "
+                        "count as other." % sex,
+                    },
+                )
+                for sex in SEXES
+            },
+            "subject": (
+                "BOOLEAN",
+                {
+                    "default": True,
+                    "tooltip": "Put the person count of the drawn characters "
+                    "in front: 1girl and solo for one girl, 1girl and "
+                    "1boy for a girl and a boy.",
+                },
+            ),
+            **{
+                key: widget
+                for name, year in (("year_min", 2020), ("year_max", 2025))
+                for key, widget in (
+                    (
+                        name,
+                        (
+                            "BOOLEAN",
+                            {
+                                "default": False,
+                                "tooltip": "Limit the year of the "
+                                "character's first post.",
+                            },
+                        ),
+                    ),
+                    (
+                        name + "_value",
+                        (
+                            "INT",
+                            {
+                                "default": year,
+                                "min": 2005,
+                                "max": 2025,
+                                "tooltip": "%s year of the first post, "
+                                "inclusive. Ignored while the toggle is off."
+                                % ("Earliest" if name == "year_min" else "Latest"),
+                            },
+                        ),
+                    ),
+                )
+            },
+            "min_count": (
+                "INT",
+                {
+                    "default": 200,
+                    "min": 100,
+                    "max": 100000,
+                    "step": 100,
+                    "tooltip": "Only characters with at least this many "
+                    "posts. The pool stops at 100.",
+                },
+            ),
+            "seed": (
+                "INT",
+                {
+                    "default": 0,
+                    "min": 0,
+                    "max": 0xFFFFFFFFFFFFFFFF,
+                    "control_after_generate": True,
+                    "tooltip": "Reproducibility. The same seed and settings "
+                    "always draw the same characters.",
+                },
+            ),
+        },
+    }
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("processed_text",)
+    FUNCTION = "execute"
+    CATEGORY = "GeneratorPack/Tags"
+
+    @classmethod
+    @exception_handler
+    def execute(
+        cls,
+        n: int = 1,
+        girl: bool = True,
+        boy: bool = False,
+        other: bool = False,
+        subject: bool = True,
+        year_min: bool = False,
+        year_min_value: int = 2020,
+        year_max: bool = False,
+        year_max_value: int = 2025,
+        min_count: int = 200,
+        seed: int = 0,
+    ) -> tuple[str]:
+        """Draw n character tags from the filtered pool."""
+        characters = load_characters()
+        if not characters:
+            return ("",)
+        sexes = {s for s, on in zip(SEXES, (girl, boy, other)) if on}
+        pool = [
+            c
+            for c in characters
+            if c.sex in sexes
+            and c.posts >= min_count
+            and not (year_min and c.first_year < year_min_value)
+            and not (year_max and c.first_year > year_max_value)
+        ]
+        drawn = random.Random(seed).sample(pool, min(n, len(pool)))
+        tags = [_escape_brackets(c.name) for c in drawn]
+        if subject and drawn:
+            tags = _subject_tags([c.sex for c in drawn]) + tags
+        return (", ".join(tags),)
+
+
 class ClassifyTags(BasePrompt):
     """Split prompt tags into coarse category outputs.
 
@@ -1442,7 +1757,7 @@ class ClassifyTags(BasePrompt):
 
     Examples:
         Input: text="1boy, serafuku, sitting, smile, classroom"
-        Output: characters="1boy", clothes="serafuku", pose="sitting",
+        Output: subject="1boy", clothes="serafuku", pose="sitting",
                 expression="smile", background="classroom", ...
     """
 
