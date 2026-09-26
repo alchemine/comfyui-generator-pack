@@ -30,8 +30,8 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 
 _PATH = artifact.resource("copyright_v1.npz")
 # not committed (370KB); fetched from the data release on first use
-_URL = artifact.url_for("data-v1.0.0", "copyright_v1.npz")
-_SHA256 = "9539fcd6a0271dd4234a244114aabbd5bdf4fe823de53a2cd56f9ecdb931f31e"
+_URL = artifact.url_for("data-v2.1.0", "copyright_v1.npz")
+_SHA256 = "f3e568e9ad88b490e1e3c22263c398f6521a5ebf117e2d0821cc2948f7a7fe5c"
 
 # A tag is a signature only when both halves of the evidence agree,
 # the same both-or-neither structure as the veto's E_MIN gate: the

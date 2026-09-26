@@ -36,4 +36,16 @@
 ## 테스트 결과
 | | 수정 전 | 수정 후 |
 |---|---|---|
-| `tests/issue/21-...` | 9 failed, 1 passed | |
+| `tests/issue/21-...` | 9 failed, 1 passed | 10 passed |
+| 전체 pytest | | 65 passed |
+
+## 재생성 결과
+| | 수정 전 | 수정 후 |
+|---|---|---|
+| `n_posts` 0인 태그 | 508 | 410 |
+| 마스크된 태그 | 3440 | 3457 |
+
+- 새로 마스크된 태그 19개: `plugsuit_(evangelion)`, `interface_headset_(evangelion)`, `test_plugsuit_(evangelion)`, `normal_suit_(gundam)`, `<|>_<|>` 등
+- 마스크에서 빠진 태그 2개: `newsboy_cap`, `aviator_goggles`
+  - 덤프에서는 `cabbie hat`, `flight goggles`로 적혀 있어서 전에는 일부 게시물(64, 199)만 셌다.
+  - 전체 게시물(19391, 370)을 세니 소유자 점유율이 기준 밑으로 내려갔다.
