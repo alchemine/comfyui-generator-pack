@@ -1098,8 +1098,8 @@ class TagsGenerator(BasePrompt):
                 "BOOLEAN",
                 {
                     "default": True,
-                    "tooltip": "Draw from every category with no share, "
-                    "ignoring the category toggles and shares below. "
+                    "tooltip": "Draw from every category switched on below with "
+                    "no share, ignoring the shares. "
                     "Their values are kept for when it is switched off.",
                 },
             ),
@@ -1472,9 +1472,13 @@ class TagsGenerator(BasePrompt):
             categories, momentum, repetition_penalty
         )
         if auto:
-            categories = dict.fromkeys(
-                (name + _SHARE_SUFFIX for name in CATEGORY_DEFAULTS), CATEGORY_UNCAPPED
-            )
+            categories = {
+                **categories,
+                **dict.fromkeys(
+                    (name + _SHARE_SUFFIX for name in CATEGORY_DEFAULTS),
+                    CATEGORY_UNCAPPED,
+                ),
+            }
         spec = _categories_spec(categories)
 
         def process(prompt):
