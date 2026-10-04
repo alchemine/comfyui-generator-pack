@@ -60,8 +60,9 @@ function shareLabel(value) {
     return `${Math.round(value * 100)}%`;
 }
 
-// auto draws from every category with no share, so while it is on the
-// rows are shown greyed out and ignore clicks; their values are kept
+// auto draws from the categories switched on with no share, so while it
+// is on the shares are shown greyed out and ignore clicks; their values
+// are kept
 function autoOn(node) {
     return Boolean(node.widgets?.find(w => w.name === "auto")?.value);
 }
@@ -87,7 +88,6 @@ function makeRow(node, boolWidget, shareWidget) {
         const inner = margin * 0.33;
         const midY = y + height * 0.5;
         ctx.save();
-        if (autoOn(node)) ctx.globalAlpha = app.canvas.editor_alpha * 0.4;
         ctx.strokeStyle = LiteGraph.WIDGET_OUTLINE_COLOR;
         ctx.fillStyle = LiteGraph.WIDGET_BGCOLOR;
         ctx.beginPath();
@@ -127,13 +127,12 @@ function makeRow(node, boolWidget, shareWidget) {
 
     row.mouse = function (event, pos, node) {
         if (event.type !== "pointerdown") return false;
-        if (autoOn(node)) return true;           // auto: the rows are inert
         if (within(pos, this.toggleBounds)) {
             boolWidget.value = !boolWidget.value;
             node.setDirtyCanvas(true, true);
             return true;
         }
-        if (!boolWidget.value) return true;      // off: the share is inert
+        if (!boolWidget.value || autoOn(node)) return true;  // off or auto: the share is inert
         const step = shareWidget.options?.step2 ?? shareWidget.options?.step ?? 0.05;
         const min = shareWidget.options?.min ?? -1;
         const max = shareWidget.options?.max ?? 1;
