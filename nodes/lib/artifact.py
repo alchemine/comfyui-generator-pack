@@ -37,17 +37,18 @@ def resource(*parts):
 # file each: one digest to bump, one fetch, and the repository carries no
 # data at all. The big tables stay separate, so a workflow that only
 # groups tags never pulls the 100MB the sampler needs.
-BUNDLE = "resources-v1.tar.gz"
-BUNDLE_TAG = "data-v1.0.0"
-BUNDLE_SHA256 = "b18caa14ffb77c3364e1c03ab77a43c1972f1745a3b1b4dd6cee61f7c352c33b"
+BUNDLE = "resources-v2.tar.gz"
+BUNDLE_TAG = "data-v3.0.0"
+BUNDLE_SHA256 = "16849304e132be47905b232971b60d11d23e6c68bd322cd9fcac595dadc44be5"
 
 
 def bundled(*parts):
     """Path to a file from the resource archive, unpacking it if missing.
 
-    Any one missing member pulls the whole archive, which is what makes
-    a hand-edited solo_conflict.txt safe: the file is already there, so
-    nothing is fetched and nothing overwrites it.
+    Any one missing member pulls the whole archive, but only the missing
+    members are unpacked, which is what makes a hand-edited
+    solo_conflict.txt safe: the file is already there, so a newer
+    archive brought in for another file does not overwrite it.
     """
     path = resource(*parts)
     if os.path.exists(path):
@@ -60,7 +61,10 @@ def bundled(*parts):
     )
     try:
         with tarfile.open(archive) as tar:
-            tar.extractall(RESOURCES_DIR, filter="data")
+            missing = [
+                m for m in tar.getmembers() if not os.path.exists(resource(m.name))
+            ]
+            tar.extractall(RESOURCES_DIR, members=missing, filter="data")
     finally:
         os.remove(archive)
     return path

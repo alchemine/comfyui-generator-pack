@@ -218,19 +218,29 @@ BUCKETS = (
     "compositions",
 )
 
-# category (categories_v1.0.json) -> bucket. creatures folds into
-# objects, which is where the old mapping put cats, dogs and elves too.
+# category (categories_v2.0.json) -> bucket. Each bucket takes the
+# categories TagsGenerator's widget of the same name draws, and the
+# categories it never draws go where they read best: creatures with
+# objects, the ones about the artwork itself with compositions.
 _CATEGORY_BUCKET = {
-    "characters": "subject",
+    "subject": "subject",
+    "hair": "body",
+    "eyes": "body",
+    "body": "body",
     "expressions": "expression",
     "pose": "pose",
+    "sex": "pose",
     "clothes": "clothes",
-    "background": "background",
-    "compositions": "compositions",
-    "body": "body",
     "objects": "objects",
     "creatures": "objects",
-    "etc": "others",
+    "background": "background",
+    "lighting": "background",
+    "effects": "background",
+    "framing": "compositions",
+    "style": "compositions",
+    "text": "compositions",
+    "meta": "compositions",
+    "concept": "others",
 }
 
 # rating level at or above which a tag is bucketed nsfw regardless of
@@ -244,7 +254,7 @@ _STATIC_BUCKET = {
     "accessories": "clothes",
     "pose": "pose",
     "expression": "expression",
-    "eye_color": "expression",
+    "eye_color": "body",
     "hair_length": "body",
     "hair_style": "body",
     "hair_color": "body",
@@ -276,7 +286,7 @@ def bucket_of(tag):
     if tag.endswith(" hair"):
         return "body"
     if tag.endswith(" eyes"):
-        return "expression"
+        return "body"
     return "others"
 
 

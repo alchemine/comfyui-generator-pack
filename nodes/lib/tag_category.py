@@ -1,20 +1,15 @@
 """Category and rating labels for the tag vocabulary.
 
-Four JSON layers under resources/group/ answer, for any tag, "which
+Two JSON files under resources/group/ answer, for any tag, "which
 knob does this belong to" and "how explicit is it":
 
-    tags_v1.0.json        tag  -> [danbooru wiki group, ...]
-    hierarchy_v1.0.json   the wiki's group tree, plus the groups its
-                          table of contents omits and five of our own
-    categories_v1.0.json  which tree nodes each user-facing category
-                          owns, and the order that resolves a tag
-                          whose groups span several
+    categories_v2.0.json  tag  -> category, the part of the picture the
+                          tag describes; `order` fixes the indices
     ratings_v1.0.json     tag  -> g/s/q/e, from rating-tier statistics
 
-A tag's category is the first category in `priority` order owning any
-of its groups; a tag with no known group falls to the last category.
-Ratings are cumulative, so a level is a ceiling: asking for "s" admits
-g and s tags.
+A tag the table does not list has no category. Ratings are
+cumulative, so a level is a ceiling: asking for "s" admits g and s
+tags.
 """
 
 import json
@@ -48,69 +43,16 @@ class Labels:
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
 
-        tree = load("hierarchy_v1.0.json")
-        cats = load("categories_v1.0.json")
-        self._groups = load("tags_v1.0.json")
+        cats = load("categories_v2.0.json")
         self._ratings = load("ratings_v1.0.json")
 
-        self.names = list(cats["priority"])
-        self._fallback = len(self.names) - 1  # "etc"
-
-        children = {}
-
-        def walk(node):
-            for name, sub in node.items():
-                children[name] = sub
-                walk(sub)
-
-        walk(tree)
-
-        def descendants(name):
-            out, stack = {name}, [children.get(name, {})]
-            while stack:
-                for key, sub in stack.pop().items():
-                    out.add(key)
-                    stack.append(sub)
-            return out
-
-        # group -> highest-priority category that owns it
-        self._group_cat = {}
-        for rank, name in enumerate(self.names):
-            spec = cats["categories"].get(name, [])
-            # a category is a list of tree nodes, or {include, exclude}
-            # when it wants a node's subtree minus a branch of it: the
-            # wiki files ears under the face, which is true anatomy and
-            # useless here -- "rabbit ears" is not an expression
-            if isinstance(spec, dict):
-                roots = spec.get("include", [])
-                blocked = set()
-                for name_ in spec.get("exclude", []):
-                    blocked |= descendants(name_)
-            else:
-                roots, blocked = spec, ()
-            for root in roots:
-                for group in descendants(root):
-                    if group not in blocked and group not in self._group_cat:
-                        self._group_cat[group] = rank
+        self.names = list(cats["order"])
+        rank_of = {name: i for i, name in enumerate(self.names)}
+        self._category = {tag: rank_of[name] for tag, name in cats["tags"].items()}
 
     def category_of(self, tag):
-        """The category most of the tag's groups point at.
-
-        Majority rather than strict priority, because wiki membership is
-        noisy in a way priority amplifies: "beach" is filed under
-        locations, water *and* swimsuit, and "building" under locations
-        and the gerund list, so whichever category ranks highest would
-        win on a single stray group. Ties fall back to priority order.
-        """
-        votes = {}
-        for group in self._groups.get(normalize(tag), ()):
-            rank = self._group_cat.get(group)
-            if rank is not None:
-                votes[rank] = votes.get(rank, 0) + 1
-        if not votes:
-            return self._fallback
-        best = max(votes.values())
-        return min(rank for rank, n in votes.items() if n == best)
+        """Category index, None when the tag is unlabelled."""
+        return self._category.get(normalize(tag))
 
     def rating_of(self, tag, default=3):
         """Rating level index, `default` when the tag has no label.
@@ -123,17 +65,23 @@ class Labels:
         return RATING_ORDER.index(level) if level in RATING_ORDER else default
 
     def category_name(self, tag):
-        return self.names[self.category_of(tag)]
+        rank = self.category_of(tag)
+        return None if rank is None else self.names[rank]
 
     def knows(self, tag):
-        return normalize(tag) in self._groups
+        return normalize(tag) in self._category
 
     def arrays(self, vocab):
-        """(category index, rating level) arrays aligned to `vocab`."""
+        """(category index, rating level) arrays aligned to `vocab`.
+
+        An unlabelled tag gets index -1, which no category spec allows.
+        """
         import numpy as np
 
         cats = np.fromiter(
-            (self.category_of(t) for t in vocab), dtype=np.int8, count=len(vocab)
+            (self._category.get(normalize(t), -1) for t in vocab),
+            dtype=np.int8,
+            count=len(vocab),
         )
         levels = np.fromiter(
             (self.rating_of(t) for t in vocab), dtype=np.int8, count=len(vocab)
