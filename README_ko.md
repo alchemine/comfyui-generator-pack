@@ -7,6 +7,8 @@
 
 ## 예시
 
+![Image](workflows/comfyui-generator-pack-image.png)
+
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
 예시 워크플로는 세 노드를 잇습니다. **Tags Extractor**가 문장을 태그로 바꾸고, **Character Tags Generator**가
