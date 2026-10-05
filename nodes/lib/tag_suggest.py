@@ -397,8 +397,8 @@ class TagSuggest:
                 allowed is None
                 or (
                     source is not None
-                    and "characters" in source.names
-                    and source.names.index("characters") in allowed
+                    and "subject" in source.names
+                    and source.names.index("subject") in allowed
                 )
             )
         )

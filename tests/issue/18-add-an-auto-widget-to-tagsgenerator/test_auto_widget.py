@@ -6,7 +6,8 @@ import pytest
 
 PACK_DIR = Path(__file__).resolve().parents[3]
 UNCAPPED = (
-    "characters, pose, expressions, body, clothes, background+objects+compositions"
+    "subject, pose+sex, expressions, body+hair+eyes, clothes, background, "
+    "objects+lighting+effects, framing"
 )
 
 
@@ -57,7 +58,7 @@ def test_auto_on_lifts_every_cap(spec_of):
 
 def test_auto_off_keeps_the_shares(spec_of):
     parts = spec_of(auto=False, pose_share=0.3, body=False).split(", ")
-    assert "pose:0.3" in parts
+    assert "pose+sex:0.3" in parts
     assert not any(p.startswith("body") for p in parts)
 
 

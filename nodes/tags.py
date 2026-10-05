@@ -49,15 +49,10 @@ RATINGS = ("general", "sensitive", "questionable", "explicit")
 # TagsGenerator's category widgets, in the order they appear on the node:
 # the shares that make a prompt read like a picture rather than a list --
 # who is in it, what they are doing and feeling, then their body, what it
-# wears, and where it is.
-#
-# These six are what a prompt actually gets steered by; the label file's
-# other categories are not worth a knob each, so background carries them
-# (see CATEGORY_GROUPS) and creatures and etc are left out of the spec
-# entirely.
+# wears, where it is, what fills the place, and how it is shot.
 #
 # Category names are hardcoded rather than read from
-# resources/group/categories_v1.0.json because INPUT_TYPES runs at import
+# resources/group/categories_v2.0.json because INPUT_TYPES runs at import
 # and loading the label tables costs more than this list is worth;
 # tag_category.parse_categories resolves them against the file at sample
 # time, so a rename there only costs the widget its effect, never an
@@ -69,34 +64,34 @@ CATEGORY_DEFAULTS = {
     "body": 0.1,
     "clothes": 0.2,
     "background": 0.1,
+    "bg_details": 0.1,
+    "framing": 0.05,
 }
-# What each widget actually turns. background stands for the scene around
-# the subject: the props in it (objects) and how it is framed
-# (compositions). The three share one budget rather than getting one
-# each, so background at 0.1 is a tenth of the output for the whole
-# setting -- objects alone will happily fill a prompt with furniture.
+# What each widget actually turns, when it is not the category of the same
+# name. The categories a widget stands for share its one budget.
 #
-# subject is the characters category, and deliberately NOT in that group.
-# The label file files the subject itself there -- 1girl, 1boy, solo, 2girls -- not just who else
-# is in the scene, and those tags anchor everything downstream: without a
-# gender anchor one male pick pulls the whole draw after it. Sharing the
-# scene's single slot left them to lose a coin toss against furniture.
+# background is the place alone, so switching only it on cannot surface a
+# cup or a sparkle; bg_details carries what fills the place -- the props
+# in it and its light and effects.
 CATEGORY_GROUPS = {
-    "subject": ("characters",),
-    "background": ("background", "objects", "compositions"),
+    "body": ("body", "hair", "eyes"),
+    "pose": ("pose", "sex"),
+    "bg_details": ("objects", "lighting", "effects"),
 }
 
-# Two categories are deliberately unreachable, and stay out of the spec
-# because parse_categories only allows what it is given: creatures pulls
-# toward animal-eared characters the prompt did not ask for, and etc is
-# the unlabelled remainder, too scattershot to steer with.
+# Five categories are deliberately unreachable, and stay out of the spec
+# because parse_categories only allows what it is given: style, text and
+# meta describe the artwork rather than what is in it (a speech bubble, a
+# signature, monochrome), concept swaps the premise (alternate costume,
+# genderswap), and creatures brings monsters the prompt did not ask for.
 
 # the order order_tags puts the added tags in: who is in the picture,
-# their body and face, what they are doing, wearing, holding, and where.
-# A constant rather than a widget -- the category names are internal
-# vocabulary nobody should have to memorise to sort a prompt.
+# their body and face, what they are doing, wearing, holding, where, and
+# how it is shot. A constant rather than a widget -- the category names
+# are internal vocabulary nobody should have to memorise to sort a prompt.
 CATEGORY_ORDER = (
-    "characters, body, expressions, pose, clothes, objects, background, compositions"
+    "subject, hair, eyes, body, expressions, pose, sex, clothes, objects, "
+    "creatures, background, lighting, effects, framing, style, text, meta, concept"
 )
 
 # widget value meaning "allowed, no cap"; 0 turns the category off and a
@@ -161,9 +156,8 @@ def _categories_spec(counts):
         if value == 0.0:
             continue
         # the categories a widget stands for are joined into one budget,
-        # so background at 0.1 is a tenth of the output for the whole
-        # setting rather than a tenth each for background, objects and
-        # compositions
+        # so bg_details at 0.1 is a tenth of the output for props, light
+        # and effects together rather than a tenth each
         group = "+".join(CATEGORY_GROUPS.get(name, (name,)))
         parts.append(group if value < 0 else f"{group}:{value}")
     return ", ".join(parts)
@@ -864,7 +858,7 @@ def _sort_by_category(items, order, tags_of):
     """Stable-sort `items` into the category order named by `order`.
 
     `order` is a comma separated list of category names from
-    resources/group/categories_v1.0.json; `tags_of(item)` yields the tags
+    resources/group/categories_v2.0.json; `tags_of(item)` yields the tags
     that decide where the item belongs. An item goes where most of its
     tags point, so one stray member cannot drag it; ties fall to the
     earlier category. Items whose tags are unlabelled, or labelled with a
@@ -929,16 +923,16 @@ class TagsGenerator(BasePrompt):
     association. Raise it if a particular prompt keeps surfacing tags
     too obscure for your model to have learned.
 
-    Five widgets restrict which knobs the output may turn: pose,
-    expressions, body, clothes and background. Each takes a share of the
-    output relative to the others, not a fraction of n: with only pose
-    0.2 and expressions 0.1 switched on, a request for 10 tags comes
-    back 7 pose and 3 expressions, because switching a category off
-    hands its share to the ones still on rather than shrinking the
-    result. -1 means allowed with no share of its own, 0 switches the
-    category off, and the defaults -- pose 0.3, clothes 0.2,
-    expressions 0.2, subject 0.1, body 0.1, background 0.1 -- balance
-    the node out of the box.
+    Eight widgets restrict which knobs the output may turn: subject,
+    pose, expressions, body, clothes, background, bg_details and
+    framing. Each takes a share of the output relative to the others,
+    not a fraction of n: with only pose 0.2 and expressions 0.1 switched
+    on, a request for 10 tags comes back 7 pose and 3 expressions,
+    because switching a category off hands its share to the ones still
+    on rather than shrinking the result. -1 means allowed with no share
+    of its own, 0 switches the category off, and the defaults -- pose
+    0.3, clothes 0.2, expressions 0.2, subject 0.1, body 0.1, background
+    0.1, bg_details 0.1, framing 0.05 -- balance the node out of the box.
 
     Counts are split by largest remainder, so they add up to exactly
     what was asked for, and they apply just as well at n 0, where what
@@ -947,15 +941,16 @@ class TagsGenerator(BasePrompt):
     say stops early, and the output comes back short with a warning.
 
     The widgets do not map one-to-one onto the categories in
-    resources/group/categories_v1.0.json. background is the setting
-    around the subject, so objects and compositions draw on its budget
-    with it -- one share for the scene, not one each. creatures and etc
-    are not exposed at all and never sampled.
+    resources/group/categories_v2.0.json. body covers hair and eyes,
+    pose covers sex, and bg_details covers objects, lighting and effects
+    -- one share for each group, not one each. background is the place
+    alone. style, text, meta, concept and creatures are not exposed at
+    all and never sampled.
 
     Capping matters because each pick re-conditions the next: choosing
     "office chair" makes "swivel chair" more likely, not less, so an
     unrestricted draw tends to pile up in whichever category the prompt
-    pulls hardest. background 0.1 breaks that up.
+    pulls hardest. bg_details 0.1 breaks that up.
 
     Three of them are easy to misread. pose owns the sex act groups, but
     explicitness is rating's job, not this one -- leaving pose on at
@@ -963,8 +958,7 @@ class TagsGenerator(BasePrompt):
     turning it off also drops "office lady" and "nurse". subject owns
     the subject itself, not just the company it keeps: it decides
     whether "1girl" and "solo" can appear at all, which is what anchors
-    the gender of everything drawn after them -- and, less happily, the
-    franchise grouping tags filed beside them.
+    the gender of everything drawn after them.
 
     rating caps explicitness on both sides: the statistics come from the
     matching corpus slice, and tags whose own rating level exceeds the
@@ -1064,7 +1058,7 @@ class TagsGenerator(BasePrompt):
         "something in the prompt pulls it, it scores by how much rarer than "
         "chance that pull is, and tags the corpus shows the prompt avoiding "
         "are removed outright.\n\n"
-        "Start with n and the six category shares; the rest are for when "
+        "Start with n and the eight category shares; the rest are for when "
         "the output is wrong in a specific way. Hover any widget for what "
         "it does."
     )
@@ -1115,7 +1109,8 @@ class TagsGenerator(BasePrompt):
                                 "default": True,
                                 "tooltip": "Allow %s tags at all. Switching it off "
                                 "hands its share to the categories still "
-                                "on rather than shrinking the output." % name,
+                                "on rather than shrinking the output."
+                                % "/".join(CATEGORY_GROUPS.get(name, (name,))),
                             },
                         ),
                     ),
@@ -1315,7 +1310,7 @@ class TagsGenerator(BasePrompt):
                     "default": True,
                     "tooltip": "Return the added tags grouped by kind -- "
                     "subject, body, expressions, pose, clothes, "
-                    "scene -- so the same settings put the same "
+                    "props, place, framing -- so the same settings put the same "
                     "kinds of tag in the same place. Off keeps the "
                     "order they were drawn. The input prompt is "
                     "never reordered.",

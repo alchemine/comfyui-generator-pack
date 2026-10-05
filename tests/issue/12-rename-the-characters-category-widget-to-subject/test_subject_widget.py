@@ -31,14 +31,14 @@ def test_the_generator_offers_subject(pack):
     assert not {"characters", "characters_share"} & set(inputs)
 
 
-def test_subject_reaches_the_characters_category(tags):
+def test_subject_reaches_the_subject_category(tags):
     spec = tags._categories_spec({"subject_share": 0.4})
-    assert "characters:0.4" in spec.split(", ")
+    assert "subject:0.4" in spec.split(", ")
 
 
-def test_subject_off_drops_the_characters_category(tags):
+def test_subject_off_drops_the_subject_category(tags):
     spec = tags._categories_spec({"subject": False})
-    assert "characters" not in spec
+    assert "subject" not in spec
 
 
 def test_classify_names_its_first_output_subject(pack):
