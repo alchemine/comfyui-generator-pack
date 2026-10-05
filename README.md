@@ -7,6 +7,8 @@ It also turns a sentence into tags and draws Danbooru character tags.
 
 ## Example
 
+![Image](workflows/comfyui-generator-pack-image.png)
+
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
 The example workflow chains three nodes. **Tags Extractor** turns a sentence into tags, **Character Tags Generator**
