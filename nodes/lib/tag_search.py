@@ -57,7 +57,7 @@ with takeoff under it the wiki stage gets its turn.
 
 import csv
 import re
-import sqlite3
+from sqlite3 import connect as open_db
 from collections import namedtuple
 
 try:
@@ -242,7 +242,7 @@ def _load(path=None):
             )
             spellings.append((name, spelling, len(words), int(truncated), posts))
 
-    db = sqlite3.connect(":memory:", check_same_thread=False)
+    db = open_db(":memory:", check_same_thread=False)
     for table, tokenize in (("exact", "unicode61"), ("stemmed", "porter unicode61")):
         db.execute(
             "CREATE VIRTUAL TABLE %s USING fts5("
