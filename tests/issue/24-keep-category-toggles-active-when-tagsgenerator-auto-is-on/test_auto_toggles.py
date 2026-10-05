@@ -41,9 +41,10 @@ def spec_of(pack, monkeypatch):
 
 def test_auto_drops_toggled_off_categories(spec_of):
     assert spec_of(auto=True, body=False) == (
-        "characters, pose, expressions, clothes, background+objects+compositions"
+        "subject, pose+sex, expressions, clothes, background, "
+        "objects+lighting+effects, framing"
     )
 
 
 def test_auto_ignores_the_shares(spec_of):
-    assert "pose" in spec_of(auto=True, pose_share=0.3).split(", ")
+    assert "pose+sex" in spec_of(auto=True, pose_share=0.3).split(", ")

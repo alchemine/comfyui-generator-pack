@@ -22,7 +22,7 @@
 |------|---------|
 | `n` | 추가할 태그 수, 후처리를 거친 뒤 기준. `0`이면 길이를 코퍼스에서 뽑고 우연 이상으로 나을 게 없으면 멈춥니다 |
 | `auto` | 아래에서 켠 카테고리에서 비율 없이 뽑습니다. 아래 share는 무시하되 값은 남깁니다 |
-| `subject` / `pose` / `expressions` / `body` / `clothes` / `background` | 각각 토글과 `_share`. share는 켜져 있는 카테고리끼리의 상대 비율입니다. `pose 0.2`, `expressions 0.1`만 켜고 10개를 요청하면 7개와 3개. `-1` = 무제한, `0` = 끄기 |
+| `subject` / `pose` / `expressions` / `body` / `clothes` / `background` / `bg_details` / `framing` | 각각 토글과 `_share`. `body`는 머리카락과 눈을, `pose`는 성행위를 함께 다루고, `background`는 장소만, `bg_details`는 소품, 빛, 효과를 다룹니다. share는 켜져 있는 카테고리끼리의 상대 비율입니다. `pose 0.2`, `expressions 0.1`만 켜고 10개를 요청하면 7개와 3개. `-1` = 무제한, `0` = 끄기 |
 
 | 이럴 때 | 손잡이 |
 |---------|--------|
@@ -33,7 +33,7 @@
 | `blacklist` | 후보 태그에 걸리는 정규식(`hair\|eyes`, `^black `). `<color>`는 `resources/wildcards.yaml`에서 펼쳐집니다. 결과가 아니라 후보를 걸러 `n`은 그대로 채워집니다 |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | 익숙한 샘플링 손잡이. `temperature 0`은 argmax |
 | `filter_copyright` | 기본 켜짐: 특정 캐릭터·작품 전유 태그를 후보에서 제외합니다. 도서관을 파츄리의 도서관으로 만드는 그 태그들입니다. 통계가 놓치는 건 `resources/copyright_blacklist.txt`에 직접 적으면 되고, 고쳐 쓰라고 있는 파일입니다. 직접 입력한 태그는 건드리지 않습니다 |
-| `order_tags` | 기본 켜짐: 추가된 태그가 종류별로(인물, 몸, 표정, 자세, 의상, 배경 순) 정렬돼 돌아옵니다. 끄면 뽑힌 순서 그대로. 입력 프롬프트는 건드리지 않습니다 |
+| `order_tags` | 기본 켜짐: 추가된 태그가 종류별로(인물, 몸, 표정, 자세, 의상, 소품, 장소, 구도 순) 정렬돼 돌아옵니다. 끄면 뽑힌 순서 그대로. 입력 프롬프트는 건드리지 않습니다 |
 
 모든 위젯에 툴팁이 있습니다. 노드를 띄워 둔 채 마우스를 올려 보세요.
 

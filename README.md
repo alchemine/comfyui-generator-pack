@@ -22,7 +22,7 @@ Feed a prompt into **Tags Generator**, read the extended prompt out of `processe
 |--------|--------------|
 | `n` | How many tags to add, counted after post-processing. `0` = draw the length from the corpus and stop once nothing beats chance |
 | `auto` | Draws from the categories switched on below with no share. The shares below are ignored but kept |
-| `subject` / `pose` / `expressions` / `body` / `clothes` / `background` | A toggle and a `_share` each. The share is relative to the categories still on: with only `pose 0.2` and `expressions 0.1`, ten tags come back 7 and 3. `-1` = no cap, `0` = off |
+| `subject` / `pose` / `expressions` / `body` / `clothes` / `background` / `bg_details` / `framing` | A toggle and a `_share` each. `body` also covers hair and eyes, `pose` covers sex acts, `background` is the place alone, and `bg_details` covers props, light and effects. The share is relative to the categories still on: with only `pose 0.2` and `expressions 0.1`, ten tags come back 7 and 3. `-1` = no cap, `0` = off |
 
 | Reach for | When |
 |-----------|------|
@@ -33,7 +33,7 @@ Feed a prompt into **Tags Generator**, read the extended prompt out of `processe
 | `blacklist` | A regex over the candidates (`hair\|eyes`, `^black `). `<color>` expands from `resources/wildcards.yaml`. Filters candidates, so `n` still holds |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | The usual sampling knobs. `temperature 0` is argmax |
 | `filter_copyright` | On by default: drops candidates owned by one character or franchise: the tags that turn a library into Patchouli's library. `resources/copyright_blacklist.txt` adds the ones the statistics miss, and is meant to be edited. Your own tags are never dropped |
-| `order_tags` | On by default: the added tags come back grouped by kind: subject, body, expressions, pose, clothes, scene. Off keeps the draw order. The input prompt is never reordered |
+| `order_tags` | On by default: the added tags come back grouped by kind: subject, body, expressions, pose, clothes, props, place, framing. Off keeps the draw order. The input prompt is never reordered |
 
 Every widget carries its own tooltip; hover it with the node in front of you.
 
