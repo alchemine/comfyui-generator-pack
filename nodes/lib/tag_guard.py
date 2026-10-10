@@ -218,7 +218,7 @@ BUCKETS = (
     "compositions",
 )
 
-# category (categories_v2.0.json) -> bucket. Each bucket takes the
+# category (categories_v2.1.json) -> bucket. Each bucket takes the
 # categories TagsGenerator's widget of the same name draws, and the
 # categories it never draws go where they read best: creatures with
 # objects, the ones about the artwork itself with compositions.

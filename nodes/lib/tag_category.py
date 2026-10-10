@@ -3,7 +3,7 @@
 Two JSON files under resources/group/ answer, for any tag, "which
 knob does this belong to" and "how explicit is it":
 
-    categories_v2.0.json  tag  -> category, the part of the picture the
+    categories_v2.1.json  tag  -> category, the part of the picture the
                           tag describes; `order` fixes the indices
     ratings_v1.0.json     tag  -> g/s/q/e, from rating-tier statistics
 
@@ -43,7 +43,7 @@ class Labels:
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
 
-        cats = load("categories_v2.0.json")
+        cats = load("categories_v2.1.json")
         self._ratings = load("ratings_v1.0.json")
 
         self.names = list(cats["order"])
