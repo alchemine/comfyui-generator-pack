@@ -37,9 +37,9 @@ def resource(*parts):
 # file each: one digest to bump, one fetch, and the repository carries no
 # data at all. The big tables stay separate, so a workflow that only
 # groups tags never pulls the 100MB the sampler needs.
-BUNDLE = "resources-v3.tar.gz"
-BUNDLE_TAG = "data-v4.0.0"
-BUNDLE_SHA256 = "0c3c85db79bd312c7f875524f9ae211556c879a99df6e93ba31243d6e0f4e2d2"
+BUNDLE = "resources-v4.tar.gz"
+BUNDLE_TAG = "data-v5.0.0"
+BUNDLE_SHA256 = "9476cb1e662d8e2afc400864fa08af6c222e6f9329078b6f3989b8388353b1aa"
 
 
 def bundled(*parts):

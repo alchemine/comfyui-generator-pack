@@ -52,7 +52,7 @@ RATINGS = ("general", "sensitive", "questionable", "explicit")
 # wears, where it is, what fills the place, and how it is shot.
 #
 # Category names are hardcoded rather than read from
-# resources/group/categories_v2.1.json because INPUT_TYPES runs at import
+# resources/group/categories_v2.2.json because INPUT_TYPES runs at import
 # and loading the label tables costs more than this list is worth;
 # tag_category.parse_categories resolves them against the file at sample
 # time, so a rename there only costs the widget its effect, never an
@@ -858,7 +858,7 @@ def _sort_by_category(items, order, tags_of):
     """Stable-sort `items` into the category order named by `order`.
 
     `order` is a comma separated list of category names from
-    resources/group/categories_v2.1.json; `tags_of(item)` yields the tags
+    resources/group/categories_v2.2.json; `tags_of(item)` yields the tags
     that decide where the item belongs. An item goes where most of its
     tags point, so one stray member cannot drag it; ties fall to the
     earlier category. Items whose tags are unlabelled, or labelled with a
@@ -941,7 +941,7 @@ class TagsGenerator(BasePrompt):
     say stops early, and the output comes back short with a warning.
 
     The widgets do not map one-to-one onto the categories in
-    resources/group/categories_v2.1.json. body covers hair and eyes,
+    resources/group/categories_v2.2.json. body covers hair and eyes,
     pose covers sex, and bg_details covers objects, lighting and effects
     -- one share for each group, not one each. background is the place
     alone. style, text, meta, concept and creatures are not exposed at
