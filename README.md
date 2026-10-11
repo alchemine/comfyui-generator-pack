@@ -2,8 +2,9 @@
 
 [English](README.md) | [한국어](README_ko.md)
 
-Suggests the tags most relevant to your prompt from a 5.48M-post Danbooru dataset, and drops the ones that contradict it.
-It also turns a sentence into tags and draws Danbooru character tags.
+Suggests the tags most relevant to your prompt from a Danbooru dataset, and drops the ones that contradict it.
+It also turns a sentence into tags, draws Danbooru character tags, splits a prompt by category, and weights the
+categories you pick.
 
 ## Example
 
