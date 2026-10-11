@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-generator-pack"
-description = """Danbooru-based tags generator and conflict filter"""
+description = """Danbooru-based tags generator and conflict filter, with sentence-to-tags extraction, character tag draws, and per-category tag classification and weighting"""
 
 version = "4.0.0"
 license = { file = "LICENSE" }
