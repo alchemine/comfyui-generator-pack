@@ -9,7 +9,6 @@ JS = PACK_DIR / "web" / "js" / "tags_generator_categories.js"
 
 CATEGORIES = (
     "subject",
-    "character",
     "pose",
     "expressions",
     "body",
@@ -17,6 +16,7 @@ CATEGORIES = (
     "background",
     "bg_details",
     "framing",
+    "character",
 )
 
 

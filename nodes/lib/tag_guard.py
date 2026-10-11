@@ -211,7 +211,7 @@ def pair_stats(tag_a, tag_b):
 # --- coarse buckets --------------------------------------------------------
 # Buckets come from the same labels TagsGenerator samples with
 # (resources/group/, via tag_category), grouped the way its widgets are:
-# one bucket per widget, in widget order, plus "character" for the
+# one bucket per widget, in widget order, then "character" for the
 # Danbooru character tags the labels never cover and "others" for what
 # no widget draws. Other tags the labels do not cover fall back to the
 # static tables above.
@@ -230,7 +230,6 @@ CATEGORY_GROUPS = {
 
 BUCKETS = (
     "subject",
-    "character",
     "pose",
     "expressions",
     "body",
@@ -238,6 +237,7 @@ BUCKETS = (
     "background",
     "bg_details",
     "framing",
+    "character",
     "others",
 )
 
