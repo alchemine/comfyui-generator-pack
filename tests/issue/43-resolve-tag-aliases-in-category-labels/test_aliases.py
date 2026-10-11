@@ -48,7 +48,7 @@ def test_table_spelling_wins(labels):
 
 
 def test_classify_alias():
-    assert tag_guard.classify_tags(":), library")["expression"] == [":)"]
+    assert tag_guard.classify_tags(":), library")["expressions"] == [":)"]
 
 
 @pytest.mark.parametrize(
@@ -69,7 +69,7 @@ def test_normalize_keeps_tag_parentheses(tag, bare):
 
 def test_classify_emoticons():
     buckets = tag_guard.classify_tags(":3, :\\), ganyu \\(genshin impact\\)")
-    assert buckets["expression"] == [":3", ":)"]
+    assert buckets["expressions"] == [":3", ":)"]
     assert buckets["others"] == ["ganyu (genshin impact)"]
 
 

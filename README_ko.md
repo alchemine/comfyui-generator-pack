@@ -83,8 +83,8 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 **Tags Conflict Filter**: 수작업 충돌 목록 대신 동시출현 lift로 고정 태그와 모순되는 태그를 제거합니다. Tag
 Generator의 거부 로직을 독립 노드로 꺼낸 것이라, 출처가 어디든 쓸 수 있습니다.
 
-**Classify Tags**: 프롬프트를 subject, clothes, body, expression, pose, background, objects, nsfw,
-others로 나눕니다.
+**Classify Tags**: 프롬프트를 Tags Generator의 여덟 카테고리로, 같은 묶음으로 나눕니다. 어느 카테고리도
+뽑지 않는 태그는 others입니다.
 
 **Group Tags**: 주제별로 한 줄에 한 그룹. 마지막(또는 첫) 단어가 같은 태그끼리 모이고 인물 태그가 맨 앞에
 옵니다. `cap`은 각 그룹을 자르며 색 태그부터 버립니다.
