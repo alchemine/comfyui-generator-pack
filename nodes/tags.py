@@ -27,6 +27,7 @@ from .lib.tag_guard import (
     BUCKETS,
     classify_tags,
     normalize,
+    unwrap,
 )
 from .lib.tag_category import load_labels
 from .lib.tag_characters import load_characters
@@ -1795,6 +1796,79 @@ class ClassifyTags(BasePrompt):
     @classmethod
     def IS_CHANGED(cls, text: str) -> tuple:
         return (text,)
+
+
+class WeightTags(BasePrompt):
+    """Weight the tags of the chosen categories, leave the rest alone.
+
+    The categories are TagsGenerator's eight toggles, so `body` also
+    covers hair and eyes and `bg_details` props, light and effects
+    (CATEGORY_GROUPS). A tag's category comes from the labels
+    order_tags sorts with; a tag they do not cover passes through, as
+    does any tag of a category switched off. A weight the tag already
+    carries is replaced, not multiplied: (library:1.2) at 1.5 comes
+    back (library:1.5).
+
+    Examples:
+        Input: text=":3, :\\), shirt, 1girl, library", weight=1.5,
+               expressions=True, background=True
+        Output: "(:3:1.5), (:\\):1.5), shirt, 1girl, (library:1.5)"
+    """
+
+    INPUT_TYPES = lambda: {
+        "required": {
+            "text": ("STRING", {"forceInput": True}),
+            "weight": (
+                "FLOAT",
+                {
+                    "default": 1.5,
+                    "min": 0.0,
+                    "max": 3.0,
+                    "step": 0.05,
+                    "tooltip": "The weight every tag of a category switched on "
+                    "below gets, replacing any it already has.",
+                },
+            ),
+            **{
+                name: (
+                    "BOOLEAN",
+                    {
+                        "default": False,
+                        "tooltip": "Weight %s tags."
+                        % "/".join(CATEGORY_GROUPS.get(name, (name,))),
+                    },
+                )
+                for name in CATEGORY_DEFAULTS
+            },
+        },
+    }
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "execute"
+    CATEGORY = "GeneratorPack/Tags"
+
+    @classmethod
+    @exception_handler
+    def execute(cls, text: str, weight: float = 1.5, **categories) -> tuple[str]:
+        wanted = {
+            category
+            for name in CATEGORY_DEFAULTS
+            if categories.get(name)
+            for category in CATEGORY_GROUPS.get(name, (name,))
+        }
+        labels = load_labels()
+        if not labels:
+            logger.warning("category labels unavailable; leaving weights alone")
+            return (text,)
+        out = []
+        for tag in _split_tags(text):
+            if labels.category_name(cls.remove_weight(normalize(tag))) in wanted:
+                tag = f"({unwrap(tag)}:{weight:g})"
+            out.append(tag)
+        return (", ".join(out),)
+
+    @classmethod
+    def IS_CHANGED(cls, text: str, weight: float = 1.5, **categories) -> tuple:
+        return (text, weight, tuple(sorted(categories.items())))
 
 
 # Families that read as one decorative motif, capped by shared first word.
