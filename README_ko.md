@@ -20,7 +20,7 @@
 
 ### Tags Generator
 
-프롬프트를 **Tags Generator**에 넣고 `processed_text`를 받습니다.
+프롬프트를 **Tags Generator**에 넣고 `text`를 받습니다. 새로 붙은 태그만 필요하면 `generated_text`를 받습니다.
 
 | 위젯 | 하는 일 |
 |------|---------|

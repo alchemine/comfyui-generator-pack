@@ -20,7 +20,8 @@ by category, and **Weight Tags** weights the categories switched on.
 
 ### Tags Generator
 
-Feed a prompt into **Tags Generator**, read the extended prompt out of `processed_text`.
+Feed a prompt into **Tags Generator**, read the extended prompt out of `text`, or the added tags alone out of
+`generated_text`.
 
 | Widget | What it does |
 |--------|--------------|

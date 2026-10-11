@@ -1341,8 +1341,10 @@ class TagsGenerator(BasePrompt):
             ),
         },
     }
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("text",)
+    RETURN_TYPES = ("STRING", "STRING")
+    # text is the whole prompt, input first; generated_text the added tags
+    # alone, for treating them apart (weighting, placing) downstream
+    RETURN_NAMES = ("text", "generated_text")
     FUNCTION = "execute"
     CATEGORY = "GeneratorPack/Tags"
 
@@ -1488,7 +1490,7 @@ class TagsGenerator(BasePrompt):
             logger.warning(
                 "[TagsGenerator] suggest artifact not found; passing through"
             )
-            return (process(text),)
+            return (process(text), "")
 
         # the sampler masks candidates with a single regex, so the widget
         # value has to be compiled the same way FilterTags compiles it --
@@ -1527,11 +1529,11 @@ class TagsGenerator(BasePrompt):
         base_tags = _split_tags(base)
         kept = cls._fill(n, draw, process, base, set(base_tags))
         if not kept:
-            return (base,)
+            return (base, "")
         kept = _sort_by_category(
             kept, CATEGORY_ORDER if order_tags else "", lambda t: (t,)
         )
-        return (", ".join(base_tags + kept),)
+        return (", ".join(base_tags + kept), ", ".join(kept))
 
     @classmethod
     def IS_CHANGED(
