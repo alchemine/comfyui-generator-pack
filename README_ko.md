@@ -89,6 +89,10 @@ others로 나눕니다.
 **Group Tags**: 주제별로 한 줄에 한 그룹. 마지막(또는 첫) 단어가 같은 태그끼리 모이고 인물 태그가 맨 앞에
 옵니다. `cap`은 각 그룹을 자르며 색 태그부터 버립니다.
 
+**Weight Tags**: 켠 카테고리의 태그를 `(태그:weight)`로 감쌉니다. 카테고리 토글은 Tags Generator의 여덟 개와
+같습니다. `expressions`와 `background`를 1.5로 켜면 `:3, shirt, library`는 `(:3:1.5), shirt, (library:1.5)`가
+됩니다. 나머지 태그는 그대로 지나가고, 태그에 이미 있던 weight는 바뀝니다.
+
 ## 데이터
 
 기기 밖으로 나가는 것은 `translate` 하나입니다. `googletrans`로 문장을 Google 번역에 보냅니다. 나머지는 전부

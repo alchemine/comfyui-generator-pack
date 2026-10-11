@@ -42,19 +42,25 @@ CATEGORY_NAMES = (
 _WEIGHT_RE = re.compile(r"^(.+):[0-9.-]+\s*$")
 
 
-def normalize(tag):
-    """Lowercase, underscores->spaces, strip weights/parens/backslashes.
+def unwrap(tag):
+    """Strip the weight syntax, keeping the tag's own spelling.
 
     Only a wrapper is syntax: "(smile:1.2)" and "((smile))" are smile,
     while ":)" and "star (sky)" keep their parentheses and ":3" keeps
     its digit.
     """
-    t = tag.strip().lower()
-    t = t.replace("\\(", "(").replace("\\)", ")")
+    t = tag.strip()
     while len(t) > 1 and t[0] == "(" and t[-1] == ")":
         t = t[1:-1]
     if m := _WEIGHT_RE.match(t):
         t = m.group(1)
+    return t
+
+
+def normalize(tag):
+    """Lowercase, underscores->spaces, strip weights/parens/backslashes."""
+    t = unwrap(tag).lower()
+    t = t.replace("\\(", "(").replace("\\)", ")")
     t = t.replace("_", " ")
     return re.sub(r"\s+", " ", t).strip()
 
