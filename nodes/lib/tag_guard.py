@@ -209,63 +209,49 @@ def pair_stats(tag_a, tag_b):
 
 # --- coarse buckets --------------------------------------------------------
 # Buckets come from the same labels TagsGenerator samples with
-# (resources/group/, via tag_category): the tag's category decides the
-# bucket, and its rating level decides whether "nsfw" overrides that.
-# Tags the labels do not cover fall back to the static tables above.
+# (resources/group/, via tag_category), grouped the way its widgets are:
+# one bucket per widget, in widget order, plus "others" for what no
+# widget draws. Tags the labels do not cover fall back to the static
+# tables above.
+
+# What each widget actually turns, when it is not the category of the same
+# name. The categories a widget stands for share its one budget.
 #
-# The bucket names predate those categories and are kept as they are so
-# existing workflows keep their wiring; `compositions` is appended
-# rather than inserted for the same reason.
+# background is the place alone, so switching only it on cannot surface a
+# cup or a sparkle; bg_details carries what fills the place -- the props
+# in it and its light and effects.
+CATEGORY_GROUPS = {
+    "body": ("body", "hair", "eyes"),
+    "pose": ("pose", "sex"),
+    "bg_details": ("objects", "lighting", "effects"),
+}
 
 BUCKETS = (
     "subject",
-    "clothes",
-    "body",
-    "expression",
     "pose",
+    "expressions",
+    "body",
+    "clothes",
     "background",
-    "objects",
-    "nsfw",
+    "bg_details",
+    "framing",
     "others",
-    "compositions",
 )
 
-# category (categories_v2.2.json) -> bucket. Each bucket takes the
-# categories TagsGenerator's widget of the same name draws, and the
-# categories it never draws go where they read best: creatures with
-# objects, the ones about the artwork itself with compositions.
+# category (categories_v2.2.json) -> bucket. The categories no widget
+# draws -- creatures, style, text, meta, concept -- land in others.
 _CATEGORY_BUCKET = {
-    "subject": "subject",
-    "hair": "body",
-    "eyes": "body",
-    "body": "body",
-    "expressions": "expression",
-    "pose": "pose",
-    "sex": "pose",
-    "clothes": "clothes",
-    "objects": "objects",
-    "creatures": "objects",
-    "background": "background",
-    "lighting": "background",
-    "effects": "background",
-    "framing": "compositions",
-    "style": "compositions",
-    "text": "compositions",
-    "meta": "compositions",
-    "concept": "others",
+    category: bucket
+    for bucket in BUCKETS
+    for category in CATEGORY_GROUPS.get(bucket, (bucket,))
 }
-
-# rating level at or above which a tag is bucketed nsfw regardless of
-# category: q and e. Level s (swimsuit, cleavage) stays with its
-# category, as it did when nsfw was decided by wiki group.
-_NSFW_LEVEL = 2
 
 # tag_data classify() category -> bucket, for tags without a wiki group
 _STATIC_BUCKET = {
     "clothes": "clothes",
     "accessories": "clothes",
     "pose": "pose",
-    "expression": "expression",
+    "expression": "expressions",
     "eye_color": "body",
     "hair_length": "body",
     "hair_style": "body",
@@ -280,16 +266,8 @@ def bucket_of(tag):
         return "subject"
 
     labels = tag_category.load_labels()
-    if labels:
-        # unlabelled tags must not read as explicit here: this is a
-        # description, not a filter, so an unknown tag falls through
-        # rather than being called nsfw
-        if labels.rating_of(tag, default=0) >= _NSFW_LEVEL:
-            return "nsfw"
-        if labels.knows(tag):
-            bucket = _CATEGORY_BUCKET.get(labels.category_name(tag))
-            if bucket and bucket != "others":
-                return bucket
+    if labels and labels.knows(tag):
+        return _CATEGORY_BUCKET.get(labels.category_name(tag), "others")
 
     cat, _sub = classify(tag)
     if cat is not None:

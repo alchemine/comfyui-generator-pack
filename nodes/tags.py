@@ -24,6 +24,7 @@ from .lib.utils import get_logger, exception_handler, standardize_prompt
 from .lib.tag_guard import (
     filter_generated,
     CATEGORY_NAMES,
+    CATEGORY_GROUPS,
     BUCKETS,
     classify_tags,
     normalize,
@@ -70,16 +71,8 @@ CATEGORY_DEFAULTS = {
     "framing": 0.05,
 }
 # What each widget actually turns, when it is not the category of the same
-# name. The categories a widget stands for share its one budget.
-#
-# background is the place alone, so switching only it on cannot surface a
-# cup or a sparkle; bg_details carries what fills the place -- the props
-# in it and its light and effects.
-CATEGORY_GROUPS = {
-    "body": ("body", "hair", "eyes"),
-    "pose": ("pose", "sex"),
-    "bg_details": ("objects", "lighting", "effects"),
-}
+# name, lives in tag_guard.CATEGORY_GROUPS: ClassifyTags buckets by the
+# same groups.
 
 # Five categories are deliberately unreachable, and stay out of the spec
 # because parse_categories only allows what it is given: style, text and
@@ -1763,19 +1756,20 @@ class CharacterTagsGenerator(BasePrompt):
 
 
 class ClassifyTags(BasePrompt):
-    """Split prompt tags into coarse category outputs.
+    """Split prompt tags into one output per TagsGenerator category.
 
     Buckets come from the same labels TagsGenerator samples with
-    (resources/group/): the tag's category picks the bucket, and its
-    rating level sends questionable and explicit tags to "nsfw"
-    instead. Tags the labels do not cover -- about 3% of the
-    vocabulary, and well under 1% of real prompt tags by frequency --
-    fall back to the static tag_data tables, then to "others".
+    (resources/group/), grouped the way its widgets are, so `body` also
+    holds hair and eyes and `bg_details` props, light and effects. Tags
+    the labels do not cover -- about 3% of the vocabulary, and well
+    under 1% of real prompt tags by frequency -- fall back to the
+    static tag_data tables, then to "others", along with the categories
+    no widget draws (creatures, style, text, meta, concept).
 
     Examples:
         Input: text="1boy, serafuku, sitting, smile, classroom"
-        Output: subject="1boy", clothes="serafuku", pose="sitting",
-                expression="smile", background="classroom", ...
+        Output: subject="1boy", pose="sitting", expressions="smile",
+                clothes="serafuku", background="classroom", ...
     """
 
     INPUT_TYPES = lambda: {
