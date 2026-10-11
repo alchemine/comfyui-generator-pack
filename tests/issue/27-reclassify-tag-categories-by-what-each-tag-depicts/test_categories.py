@@ -102,7 +102,7 @@ def test_widgets_never_open_hidden_categories(spec_of):
 @pytest.mark.parametrize("seed", range(5))
 def test_background_only_draws_background(pack, labels, seed):
     toggles = {w: w == "background" for w in WIDGETS}
-    (out,) = pack.NODE_CLASS_MAPPINGS["TagsGenerator"].execute(
+    out, _ = pack.NODE_CLASS_MAPPINGS["TagsGenerator"].execute(
         text=PROMPT, n=10, auto=True, seed=seed, **toggles
     )
     given = {t.strip() for t in PROMPT.split(",")}
