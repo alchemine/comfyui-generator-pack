@@ -1865,15 +1865,20 @@ class WeightTags(BasePrompt):
         if not labels:
             logger.warning("category labels unavailable; leaving weights alone")
             return (text,)
+        # pieces are rewritten in place so the prompt keeps its commas,
+        # spaces and line breaks
         out = []
-        for tag in _split_tags(text):
+        for piece in text.split(","):
+            tag = piece.strip()
             weight = weights.get(
                 labels.category_name(cls.remove_weight(normalize(tag)))
             )
             if weight is not None:
-                tag = f"({unwrap(tag)}:{weight:g})"
-            out.append(tag)
-        return (", ".join(out),)
+                lead = piece[: len(piece) - len(piece.lstrip())]
+                trail = piece[len(piece.rstrip()) :]
+                piece = f"{lead}({unwrap(tag)}:{weight:g}){trail}"
+            out.append(piece)
+        return (",".join(out),)
 
     @classmethod
     def IS_CHANGED(cls, text: str, **categories) -> tuple:
