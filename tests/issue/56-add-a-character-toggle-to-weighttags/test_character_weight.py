@@ -8,7 +8,6 @@ PACK_DIR = Path(__file__).resolve().parents[3]
 
 CATEGORIES = (
     "subject",
-    "character",
     "pose",
     "expressions",
     "body",
@@ -16,6 +15,7 @@ CATEGORIES = (
     "background",
     "bg_details",
     "framing",
+    "character",
 )
 
 
@@ -42,7 +42,7 @@ def weight(pack):
     return run
 
 
-def test_character_follows_subject(pack):
+def test_character_follows_framing(pack):
     required = pack.NODE_CLASS_MAPPINGS["WeightTags"].INPUT_TYPES()["required"]
     pairs = tuple(key for name in CATEGORIES for key in (name, name + "_weight"))
     assert tuple(required) == ("text", *pairs)

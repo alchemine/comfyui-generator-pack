@@ -12,7 +12,6 @@ import tag_guard  # noqa: E402
 
 BUCKETS = (
     "subject",
-    "character",
     "pose",
     "expressions",
     "body",
@@ -20,6 +19,7 @@ BUCKETS = (
     "background",
     "bg_details",
     "framing",
+    "character",
     "others",
 )
 
@@ -37,7 +37,7 @@ def pack():
     return pack
 
 
-def test_character_follows_subject(pack):
+def test_character_follows_framing(pack):
     node = pack.NODE_CLASS_MAPPINGS["ClassifyTags"]
     assert tuple(node.RETURN_NAMES) == BUCKETS
 
