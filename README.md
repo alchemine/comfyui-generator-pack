@@ -84,7 +84,7 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 hand-written conflict list. Tags Generator's veto as a node of its own, for tags from anywhere else.
 
 **Classify Tags**: splits a prompt into Tags Generator's eight categories, grouped the same way, plus
-others for what no category draws.
+character for Danbooru character tags and others for what no category draws.
 
 **Group Tags**: one themed group per line; tags sharing a last (or first) word gather together, person tags
 lead. `cap` trims each group, colours first.

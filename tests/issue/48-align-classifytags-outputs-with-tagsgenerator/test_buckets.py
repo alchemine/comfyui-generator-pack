@@ -12,6 +12,7 @@ import tag_guard  # noqa: E402
 
 BUCKETS = (
     "subject",
+    "character",
     "pose",
     "expressions",
     "body",
