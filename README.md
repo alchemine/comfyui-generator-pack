@@ -91,7 +91,7 @@ character for Danbooru character tags and others for what no category draws.
 lead. `cap` trims each group, colours first.
 
 **Weight Tags**: wraps the tags of the categories switched on in `(tag:weight)`, a toggle and a weight for
-each of Classify Tags' categories (Tags Generator's eight plus character). `expressions 1.5` and
+each of Classify Tags' outputs (Tags Generator's eight, character and others). `expressions 1.5` and
 `background 1.2` turn `:3, shirt, library` into `(:3:1.5), shirt, (library:1.2)`. Other tags pass through, and
 a weight a tag already has is replaced.
 

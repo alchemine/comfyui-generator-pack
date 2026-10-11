@@ -100,9 +100,8 @@ CATEGORY_UNCAPPED = -1.0
 # be dialled in, switched off, and switched back on unchanged.
 _SHARE_SUFFIX = "_share"
 # WeightTags pairs each toggle with the weight its tags get, the same way;
-# its toggles are ClassifyTags' outputs, less the one nothing claims.
+# its toggles are ClassifyTags' outputs.
 _WEIGHT_SUFFIX = "_weight"
-WEIGHT_CATEGORIES = tuple(b for b in BUCKETS if b != "others")
 
 
 def _legacy_knobs(categories, momentum, repetition_penalty):
@@ -1800,12 +1799,13 @@ class ClassifyTags(BasePrompt):
 class WeightTags(BasePrompt):
     """Weight the tags of the chosen categories, leave the rest alone.
 
-    The categories are ClassifyTags' outputs minus others: TagsGenerator's
-    eight toggles, so `body` also covers hair and eyes and `bg_details`
-    props, light and effects, plus character for Danbooru character
-    tags; each toggle has its own weight beside it. A tag of a category
-    switched off passes through, as does one no category claims. A
-    weight the tag already carries is replaced, not multiplied:
+    The categories are ClassifyTags' outputs: TagsGenerator's eight
+    toggles, so `body` also covers hair and eyes and `bg_details` props,
+    light and effects, then character for Danbooru character tags and
+    others for what none of them claims; each toggle has its own weight
+    beside it. A tag of a category switched off passes through, and so
+    does BREAK, which is prompt syntax rather than a tag. A weight the
+    tag already carries is replaced, not multiplied:
     (library:1.2) under background 1.5 comes back (library:1.5).
 
     Examples:
@@ -1820,7 +1820,7 @@ class WeightTags(BasePrompt):
             "text": ("STRING", {"forceInput": True}),
             **{
                 key: widget
-                for name in WEIGHT_CATEGORIES
+                for name in BUCKETS
                 for key, widget in (
                     (
                         name,
@@ -1860,7 +1860,7 @@ class WeightTags(BasePrompt):
     def execute(cls, text: str, **categories) -> tuple[str]:
         weights = {
             name: categories.get(name + _WEIGHT_SUFFIX, 1.1)
-            for name in WEIGHT_CATEGORIES
+            for name in BUCKETS
             if categories.get(name)
         }
         # pieces are rewritten in place so the prompt keeps its commas,
@@ -1868,7 +1868,9 @@ class WeightTags(BasePrompt):
         out = []
         for piece in text.split(","):
             tag = piece.strip()
-            weight = weights.get(bucket_of(normalize(tag))) if tag else None
+            weight = None
+            if tag and tag != "BREAK":
+                weight = weights.get(bucket_of(normalize(tag)))
             if weight is not None:
                 lead = piece[: len(piece) - len(piece.lstrip())]
                 trail = piece[len(piece.rstrip()) :]

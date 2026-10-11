@@ -16,6 +16,7 @@ ORDER = (
     "bg_details",
     "framing",
     "character",
+    "others",
 )
 
 
@@ -34,7 +35,7 @@ def pack():
 
 def test_classify_outputs(pack):
     node = pack.NODE_CLASS_MAPPINGS["ClassifyTags"]
-    assert tuple(node.RETURN_NAMES) == (*ORDER, "others")
+    assert tuple(node.RETURN_NAMES) == ORDER
 
 
 def test_weight_widgets(pack):
