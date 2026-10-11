@@ -89,9 +89,9 @@ nsfw, others.
 **Group Tags**: one themed group per line; tags sharing a last (or first) word gather together, person tags
 lead. `cap` trims each group, colours first.
 
-**Weight Tags**: wraps the tags of the categories switched on in `(tag:weight)`, with Tags Generator's eight
-category toggles. `expressions` and `background` at 1.5 turn `:3, shirt, library` into
-`(:3:1.5), shirt, (library:1.5)`. Other tags pass through, and a weight a tag already has is replaced.
+**Weight Tags**: wraps the tags of the categories switched on in `(tag:weight)`, a toggle and a weight for
+each of Tags Generator's eight categories. `expressions 1.5` and `background 1.2` turn `:3, shirt, library`
+into `(:3:1.5), shirt, (library:1.2)`. Other tags pass through, and a weight a tag already has is replaced.
 
 ## Data
 
