@@ -6,6 +6,7 @@ ReplaceUnderscores carry no node surface: TagsGenerator runs its draw
 through that pipeline before counting what survived.
 """
 
+import math
 import re
 import random
 import textwrap
@@ -24,8 +25,12 @@ from .lib.utils import get_logger, exception_handler, standardize_prompt
 from .lib.tag_guard import (
     filter_generated,
     CATEGORY_NAMES,
+    CATEGORY_GROUPS,
     BUCKETS,
+    bucket_of,
     classify_tags,
+    normalize,
+    unwrap,
 )
 from .lib.tag_category import load_labels
 from .lib.tag_characters import load_characters
@@ -52,7 +57,7 @@ RATINGS = ("general", "sensitive", "questionable", "explicit")
 # wears, where it is, what fills the place, and how it is shot.
 #
 # Category names are hardcoded rather than read from
-# resources/group/categories_v2.0.json because INPUT_TYPES runs at import
+# resources/group/categories_v2.2.json because INPUT_TYPES runs at import
 # and loading the label tables costs more than this list is worth;
 # tag_category.parse_categories resolves them against the file at sample
 # time, so a rename there only costs the widget its effect, never an
@@ -68,16 +73,8 @@ CATEGORY_DEFAULTS = {
     "framing": 0.05,
 }
 # What each widget actually turns, when it is not the category of the same
-# name. The categories a widget stands for share its one budget.
-#
-# background is the place alone, so switching only it on cannot surface a
-# cup or a sparkle; bg_details carries what fills the place -- the props
-# in it and its light and effects.
-CATEGORY_GROUPS = {
-    "body": ("body", "hair", "eyes"),
-    "pose": ("pose", "sex"),
-    "bg_details": ("objects", "lighting", "effects"),
-}
+# name, lives in tag_guard.CATEGORY_GROUPS: ClassifyTags buckets by the
+# same groups.
 
 # Five categories are deliberately unreachable, and stay out of the spec
 # because parse_categories only allows what it is given: style, text and
@@ -103,6 +100,9 @@ CATEGORY_UNCAPPED = -1.0
 # wins: off means off whatever the share says, which also lets a share
 # be dialled in, switched off, and switched back on unchanged.
 _SHARE_SUFFIX = "_share"
+# WeightTags pairs each toggle with the weight its tags get, the same way;
+# its toggles are ClassifyTags' outputs.
+_WEIGHT_SUFFIX = "_weight"
 
 
 def _legacy_knobs(categories, momentum, repetition_penalty):
@@ -858,7 +858,7 @@ def _sort_by_category(items, order, tags_of):
     """Stable-sort `items` into the category order named by `order`.
 
     `order` is a comma separated list of category names from
-    resources/group/categories_v2.0.json; `tags_of(item)` yields the tags
+    resources/group/categories_v2.2.json; `tags_of(item)` yields the tags
     that decide where the item belongs. An item goes where most of its
     tags point, so one stray member cannot drag it; ties fall to the
     earlier category. Items whose tags are unlabelled, or labelled with a
@@ -885,9 +885,7 @@ def _sort_by_category(items, order, tags_of):
     def rank(item):
         votes = defaultdict(int)
         for tag in tags_of(item):
-            bare = BasePrompt.remove_weight(tag).strip().strip("()")
-            bare = bare.replace("\\(", "(").replace("\\)", ")")
-            name = labels.category_name(bare)
+            name = labels.category_name(BasePrompt.remove_weight(normalize(tag)))
             if name in rank_of:
                 votes[rank_of[name]] += 1
         if not votes:
@@ -941,7 +939,7 @@ class TagsGenerator(BasePrompt):
     say stops early, and the output comes back short with a warning.
 
     The widgets do not map one-to-one onto the categories in
-    resources/group/categories_v2.0.json. body covers hair and eyes,
+    resources/group/categories_v2.2.json. body covers hair and eyes,
     pose covers sex, and bg_details covers objects, lighting and effects
     -- one share for each group, not one each. background is the place
     alone. style, text, meta, concept and creatures are not exposed at
@@ -1343,8 +1341,10 @@ class TagsGenerator(BasePrompt):
             ),
         },
     }
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("text",)
+    RETURN_TYPES = ("STRING", "STRING")
+    # text is the whole prompt, input first; generated_text the added tags
+    # alone, for treating them apart (weighting, placing) downstream
+    RETURN_NAMES = ("text", "generated_text")
     FUNCTION = "execute"
     CATEGORY = "GeneratorPack/Tags"
 
@@ -1490,7 +1490,7 @@ class TagsGenerator(BasePrompt):
             logger.warning(
                 "[TagsGenerator] suggest artifact not found; passing through"
             )
-            return (process(text),)
+            return (process(text), "")
 
         # the sampler masks candidates with a single regex, so the widget
         # value has to be compiled the same way FilterTags compiles it --
@@ -1529,11 +1529,11 @@ class TagsGenerator(BasePrompt):
         base_tags = _split_tags(base)
         kept = cls._fill(n, draw, process, base, set(base_tags))
         if not kept:
-            return (base,)
+            return (base, "")
         kept = _sort_by_category(
             kept, CATEGORY_ORDER if order_tags else "", lambda t: (t,)
         )
-        return (", ".join(base_tags + kept),)
+        return (", ".join(base_tags + kept), ", ".join(kept))
 
     @classmethod
     def IS_CHANGED(
@@ -1761,19 +1761,20 @@ class CharacterTagsGenerator(BasePrompt):
 
 
 class ClassifyTags(BasePrompt):
-    """Split prompt tags into coarse category outputs.
+    """Split prompt tags into one output per TagsGenerator category.
 
     Buckets come from the same labels TagsGenerator samples with
-    (resources/group/): the tag's category picks the bucket, and its
-    rating level sends questionable and explicit tags to "nsfw"
-    instead. Tags the labels do not cover -- about 3% of the
-    vocabulary, and well under 1% of real prompt tags by frequency --
-    fall back to the static tag_data tables, then to "others".
+    (resources/group/), grouped the way its widgets are, so `body` also
+    holds hair and eyes and `bg_details` props, light and effects. Tags
+    the labels do not cover -- about 3% of the vocabulary, and well
+    under 1% of real prompt tags by frequency -- fall back to the
+    static tag_data tables, then to "others", along with the categories
+    no widget draws (creatures, style, text, meta, concept).
 
     Examples:
         Input: text="1boy, serafuku, sitting, smile, classroom"
-        Output: subject="1boy", clothes="serafuku", pose="sitting",
-                expression="smile", background="classroom", ...
+        Output: subject="1boy", pose="sitting", expressions="smile",
+                clothes="serafuku", background="classroom", ...
     """
 
     INPUT_TYPES = lambda: {
@@ -1796,6 +1797,133 @@ class ClassifyTags(BasePrompt):
     @classmethod
     def IS_CHANGED(cls, text: str) -> tuple:
         return (text,)
+
+
+# Prompt emphasis: each wrapping ( multiplies the weight by this, each [
+# divides by it, as ComfyUI's prompt parser reads them.
+_EMPHASIS = 1.1
+_WEIGHTED_RE = re.compile(r"^(.+):(-?[0-9.]+)\s*$")
+
+
+def _weight_of(tag):
+    """The weight a prompt token carries, 1.0 when it names none.
+
+    (x:1.2) is 1.2, ((x)) 1.21, [x] 1/1.1, and ((x:1.2)) 1.2 * 1.1: the
+    parentheses around a number are syntax, the rest emphasis, and they
+    multiply with the number, which may be negative.
+    """
+    t = tag.strip()
+    weight = 1.0
+    while len(t) > 1 and t[0] + t[-1] in ("()", "[]"):
+        if t[0] == "(" and (m := _WEIGHTED_RE.match(t[1:-1])):
+            return weight * float(m.group(2))
+        weight *= _EMPHASIS if t[0] == "(" else 1 / _EMPHASIS
+        t = t[1:-1]
+    return weight
+
+
+class WeightTags(BasePrompt):
+    """Weight the tags of the chosen categories, leave the rest alone.
+
+    The categories are ClassifyTags' outputs: TagsGenerator's eight
+    toggles, so `body` also covers hair and eyes and `bg_details` props,
+    light and effects, then character for Danbooru character tags and
+    others for what none of them claims; each toggle has its own weight
+    beside it. A tag of a category switched off passes through, and so
+    does BREAK, which is prompt syntax rather than a tag. `mode` says
+    what happens to a weight the tag already carries: replace keeps only
+    its sign, so (library:1.2) under background 1.5 comes back
+    (library:1.5) and (abc:-1.1) comes back (abc:-1.5); multiply
+    multiplies, so they come back (library:1.8) and (abc:-1.65).
+
+    Examples:
+        Input: text=":3, :\\), shirt, 1girl, library",
+               expressions=True, expressions_weight=1.5,
+               background=True, background_weight=1.2
+        Output: "(:3:1.5), (:\\):1.5), shirt, 1girl, (library:1.2)"
+    """
+
+    INPUT_TYPES = lambda: {
+        "required": {
+            "text": ("STRING", {"forceInput": True}),
+            "mode": (
+                ["replace", "multiply"],
+                {
+                    "default": "replace",
+                    "tooltip": "What a weight the tag already has becomes: "
+                    "replace swaps it for the category's weight, keeping "
+                    "its sign; multiply multiplies the two. ((x)) counts "
+                    "as 1.21 and [x] as 1/1.1.",
+                },
+            ),
+            **{
+                key: widget
+                for name in BUCKETS
+                for key, widget in (
+                    (
+                        name,
+                        (
+                            "BOOLEAN",
+                            {
+                                "default": False,
+                                "tooltip": "Weight %s tags."
+                                % "/".join(CATEGORY_GROUPS.get(name, (name,))),
+                            },
+                        ),
+                    ),
+                    (
+                        name + _WEIGHT_SUFFIX,
+                        (
+                            "FLOAT",
+                            {
+                                "default": 1.1,
+                                "min": 0.0,
+                                "max": 3.0,
+                                "step": 0.05,
+                                "tooltip": "The weight every %s tag gets, "
+                                "replacing any it already has." % name,
+                            },
+                        ),
+                    ),
+                )
+            },
+        },
+    }
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "execute"
+    CATEGORY = "GeneratorPack/Tags"
+
+    @classmethod
+    @exception_handler
+    def execute(cls, text: str, mode: str = "replace", **categories) -> tuple[str]:
+        weights = {
+            name: categories.get(name + _WEIGHT_SUFFIX, 1.1)
+            for name in BUCKETS
+            if categories.get(name)
+        }
+        # pieces are rewritten in place so the prompt keeps its commas,
+        # spaces and line breaks
+        out = []
+        for piece in text.split(","):
+            tag = piece.strip()
+            weight = None
+            if tag and tag != "BREAK":
+                weight = weights.get(bucket_of(normalize(tag)))
+            if weight is not None:
+                old = _weight_of(tag)
+                weight = (
+                    old * weight if mode == "multiply" else math.copysign(weight, old)
+                )
+                weight = round(weight, 3)
+                lead = piece[: len(piece) - len(piece.lstrip())]
+                trail = piece[len(piece.rstrip()) :]
+                piece = f"{lead}({unwrap(tag)}:{weight:g}){trail}"
+            out.append(piece)
+        return (",".join(out),)
+
+    @classmethod
+    def IS_CHANGED(cls, text: str, mode: str = "replace", **categories) -> tuple:
+        return (text, mode, tuple(sorted(categories.items())))
 
 
 # Families that read as one decorative motif, capped by shared first word.

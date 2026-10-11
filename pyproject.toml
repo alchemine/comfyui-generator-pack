@@ -1,8 +1,10 @@
 [project]
 name = "comfyui-generator-pack"
-description = """Danbooru-based tags generator and conflict filter"""
+description = """Danbooru-based tags generator pack.
+- Tags Generator, Tags Extractor, Character Tags Generator, Tags Conflict Filter, Classify Tags, Weight Tags
+- [a/Workflow](https://github.com/alchemine/comfyui-generator-pack/blob/main/workflows/comfyui-generator-pack-workflow.png)"""
 
-version = "3.0.2"
+version = "4.0.0"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
 

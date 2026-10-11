@@ -2,8 +2,9 @@
 
 [English](README.md) | [한국어](README_ko.md)
 
-프롬프트에 가장 어울리는 태그를 548만 포스트 Danbooru 데이터셋에서 제안하고, 모순되는 태그는 걸러냅니다.
-문장을 태그로 바꾸고, Danbooru 캐릭터 태그를 뽑는 노드도 있습니다.
+프롬프트에 가장 어울리는 태그를 Danbooru 데이터셋에서 제안하고, 모순되는 태그는 걸러냅니다.
+문장을 태그로 바꾸고, Danbooru 캐릭터 태그를 뽑고, 프롬프트를 카테고리별로 나누고, 고른 카테고리에 weight를 주는
+노드도 있습니다.
 
 ## 예시
 
@@ -11,14 +12,15 @@
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
-예시 워크플로는 세 노드를 잇습니다. **Tags Extractor**가 문장을 태그로 바꾸고, **Character Tags Generator**가
-뽑은 캐릭터를 거기에 붙이고, **Tags Generator**가 그 결과를 프롬프트 전체로 키웁니다.
+예시 워크플로는 다섯 노드를 잇습니다. **Tags Extractor**가 문장을 태그로 바꾸고, **Character Tags Generator**가
+뽑은 캐릭터를 거기에 붙이고, **Tags Generator**가 그 결과를 프롬프트 전체로 키우고, **Classify Tags**가 그것을
+카테고리별로 나누고, **Weight Tags**가 켠 카테고리에 weight를 줍니다.
 
 ## 사용법
 
 ### Tags Generator
 
-프롬프트를 **Tags Generator**에 넣고 `processed_text`를 받습니다.
+프롬프트를 **Tags Generator**에 넣고 `text`를 받습니다. 새로 붙은 태그만 필요하면 `generated_text`를 받습니다.
 
 | 위젯 | 하는 일 |
 |------|---------|
@@ -83,11 +85,16 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 **Tags Conflict Filter**: 수작업 충돌 목록 대신 동시출현 lift로 고정 태그와 모순되는 태그를 제거합니다. Tag
 Generator의 거부 로직을 독립 노드로 꺼낸 것이라, 출처가 어디든 쓸 수 있습니다.
 
-**Classify Tags**: 프롬프트를 subject, clothes, body, expression, pose, background, objects, nsfw,
-others로 나눕니다.
+**Classify Tags**: 프롬프트를 Tags Generator의 여덟 카테고리로, 같은 묶음으로 나눕니다. Danbooru 캐릭터 태그는
+character, 어느 카테고리도 뽑지 않는 태그는 others입니다.
 
 **Group Tags**: 주제별로 한 줄에 한 그룹. 마지막(또는 첫) 단어가 같은 태그끼리 모이고 인물 태그가 맨 앞에
 옵니다. `cap`은 각 그룹을 자르며 색 태그부터 버립니다.
+
+**Weight Tags**: 켠 카테고리의 태그를 `(태그:weight)`로 감쌉니다. Classify Tags의 출력(Tags Generator의
+여덟 개, character, others)마다 토글과 weight가 있습니다. `expressions 1.5`와 `background 1.2`를 켜면 `:3, shirt, library`는
+`(:3:1.5), shirt, (library:1.2)`가 됩니다. 나머지 태그는 그대로 지나갑니다. 태그에 이미 있던 weight는 `mode`가 `replace`면 부호만 남기고 바뀌고,
+`multiply`면 곱해집니다.
 
 ## 데이터
 

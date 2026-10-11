@@ -1,31 +1,52 @@
-// One row per TagsGenerator category: a toggle and its share together.
+// One row per category: a toggle and its value together.
 //
-// The node declares them as two widgets -- a BOOLEAN named after the
-// category and a FLOAT named <category>_share -- because that is all
-// INPUT_TYPES can express. Two stacked rows per category is ten rows for
-// what reads as five settings, so here the pair is drawn as one: the
-// toggle on the left, the share on the right, greyed out while the
-// toggle is off.
+// TagsGenerator declares a BOOLEAN named after each category and a FLOAT
+// named <category>_share, and WeightTags the same with <category>_weight
+// -- because that is all INPUT_TYPES can express. Two stacked rows per
+// category is sixteen rows for what reads as eight settings, so here the
+// pair is drawn as one: the toggle on the left, the value on the right,
+// greyed out while the toggle is off.
 //
 // Both widgets stay in node.widgets. Only their appearance is merged:
 // the boolean is hidden rather than removed, so widget order -- and with
 // it serialisation and the prompt the backend receives -- is untouched.
 import { app } from "../../scripts/app.js";
 
-const NODE = "TagsGenerator";
-const SHARE_SUFFIX = "_share";
+// A share of -1 is "allowed, no cap" -- a number nobody wants to read as
+// a percentage, so it gets a word instead.
+function shareLabel(value) {
+    if (value < 0) return "no cap";
+    return `${Math.round(value * 100)}%`;
+}
+
+// auto draws from the categories switched on with no share, so while it
+// is on the shares are shown greyed out and ignore clicks; their values
+// are kept
+function autoOn(node) {
+    return Boolean(node.widgets?.find(w => w.name === "auto")?.value);
+}
+
+// Per node: the suffix of the value widget, how its value reads, what
+// besides its own toggle makes a row inert, and the width a new node gets.
+// LiteGraph sizes a node so its longest input and longest output label fit
+// side by side, but TagsGenerator's generated_text sits alone on its row,
+// so that width would be wasted; 210 is what the node had before it.
+const NODES = {
+    TagsGenerator: { suffix: "_share", label: shareLabel, inert: autoOn, width: 210 },
+    WeightTags: { suffix: "_weight", label: v => Number(v).toFixed(2), inert: () => false },
+};
 
 // Read off the node rather than listed here: a category is any BOOLEAN
 // that has a FLOAT named after it plus the suffix. A hardcoded list goes
 // stale the moment CATEGORY_DEFAULTS gains an entry, and the symptom --
 // one category rendering as two plain rows while the rest are merged --
 // looks like a bug in the drawing code rather than a missing name.
-function categoriesOf(node) {
+function categoriesOf(node, suffix) {
     const names = new Set(node.widgets?.map(w => w.name) ?? []);
     return (node.widgets ?? [])
         .filter(w => w.type === "toggle" || typeof w.value === "boolean")
         .map(w => w.name)
-        .filter(name => names.has(name + SHARE_SUFFIX));
+        .filter(name => names.has(name + suffix));
 }
 
 export function isLowQuality() {
@@ -53,33 +74,19 @@ export function drawToggle(ctx, x, y, height, on) {
     return width;
 }
 
-// A share of -1 is "allowed, no cap" -- a number nobody wants to read as
-// a percentage, so it gets a word instead.
-function shareLabel(value) {
-    if (value < 0) return "no cap";
-    return `${Math.round(value * 100)}%`;
-}
-
-// auto draws from the categories switched on with no share, so while it
-// is on the shares are shown greyed out and ignore clicks; their values
-// are kept
-function autoOn(node) {
-    return Boolean(node.widgets?.find(w => w.name === "auto")?.value);
-}
-
-function makeRow(node, boolWidget, shareWidget) {
+function makeRow(node, boolWidget, valueWidget, spec) {
     const row = {
         type: "custom",
-        name: shareWidget.name,
-        options: shareWidget.options,
+        name: valueWidget.name,
+        options: valueWidget.options,
         // the row stands for both widgets, so it answers for both help
         // texts; without this the merged row would have none at all
         tooltip: `${boolWidget.options?.tooltip ?? ""}\n\n${
-            shareWidget.options?.tooltip ?? ""}`.trim(),
-        get value() { return shareWidget.value; },
-        set value(v) { shareWidget.value = v; },
+            valueWidget.options?.tooltip ?? ""}`.trim(),
+        get value() { return valueWidget.value; },
+        set value(v) { valueWidget.value = v; },
         // the real widgets serialise themselves; this one is decoration
-        serializeValue() { return shareWidget.value; },
+        serializeValue() { return valueWidget.value; },
         computeSize(width) { return [width, LiteGraph.NODE_WIDGET_HEIGHT]; },
     };
 
@@ -101,7 +108,7 @@ function makeRow(node, boolWidget, shareWidget) {
         x += this.toggleBounds[1] + inner;
 
         if (isLowQuality()) { ctx.restore(); return; }
-        if (!boolWidget.value || autoOn(node)) ctx.globalAlpha = app.canvas.editor_alpha * 0.4;
+        if (!boolWidget.value || spec.inert(node)) ctx.globalAlpha = app.canvas.editor_alpha * 0.4;
 
         ctx.fillStyle = LiteGraph.WIDGET_SECONDARY_TEXT_COLOR || "#999";
         ctx.textAlign = "left";
@@ -112,7 +119,7 @@ function makeRow(node, boolWidget, shareWidget) {
         const right = node.size[0] - margin - 8;
         ctx.fillStyle = LiteGraph.WIDGET_TEXT_COLOR;
         ctx.textAlign = "right";
-        ctx.fillText(shareLabel(shareWidget.value), right - 12, midY);
+        ctx.fillText(spec.label(valueWidget.value), right - 12, midY);
         ctx.textAlign = "center";
         ctx.fillText("◀", x + 4 + (right - x) * 0.62, midY);
         ctx.fillText("▶", right - 4, midY);
@@ -132,28 +139,28 @@ function makeRow(node, boolWidget, shareWidget) {
             node.setDirtyCanvas(true, true);
             return true;
         }
-        if (!boolWidget.value || autoOn(node)) return true;  // off or auto: the share is inert
-        const step = shareWidget.options?.step2 ?? shareWidget.options?.step ?? 0.05;
-        const min = shareWidget.options?.min ?? -1;
-        const max = shareWidget.options?.max ?? 1;
+        if (!boolWidget.value || spec.inert(node)) return true;  // off or auto: the value is inert
+        const step = valueWidget.options?.step2 ?? valueWidget.options?.step ?? 0.05;
+        const min = valueWidget.options?.min ?? -1;
+        const max = valueWidget.options?.max ?? 1;
         let delta = 0;
         if (within(pos, this.decBounds)) delta = -step;
         else if (within(pos, this.incBounds)) delta = step;
         if (delta) {
             // -1 means uncapped and sits a whole step below 0; walking
             // through it rather than into it keeps the arrows monotone
-            let next = shareWidget.value < 0 ? (delta > 0 ? 0 : -1)
-                                             : shareWidget.value + delta;
+            let next = valueWidget.value < 0 ? (delta > 0 ? 0 : -1)
+                                             : valueWidget.value + delta;
             if (next < 0) next = -1;
-            shareWidget.value = Math.min(max, Math.max(min, Number(next.toFixed(2))));
+            valueWidget.value = Math.min(max, Math.max(min, Number(next.toFixed(2))));
             node.setDirtyCanvas(true, true);
             return true;
         }
         // anywhere else on the row: type a value
-        app.canvas.prompt("Value", shareWidget.value, (v) => {
+        app.canvas.prompt("Value", valueWidget.value, (v) => {
             const parsed = Number(v);
             if (!Number.isNaN(parsed)) {
-                shareWidget.value = Math.min(max, Math.max(min, parsed));
+                valueWidget.value = Math.min(max, Math.max(min, parsed));
                 node.setDirtyCanvas(true, true);
             }
         }, event);
@@ -165,22 +172,33 @@ function makeRow(node, boolWidget, shareWidget) {
 app.registerExtension({
     name: "alchemine.generatorPack.CategoryRows",
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        if (nodeData.name !== NODE) return;
+        const spec = NODES[nodeData.name];
+        if (!spec) return;
+        // the frontend floors resizing and loading at computeSize, so the
+        // width cap has to live there, not only in the size a node starts at
+        if (spec.width) {
+            const computeSize = nodeType.prototype.computeSize;
+            nodeType.prototype.computeSize = function (out) {
+                const size = computeSize.call(this, out);
+                size[0] = Math.min(size[0], spec.width);
+                return size;
+            };
+        }
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
-            for (const category of categoriesOf(this)) {
+            for (const category of categoriesOf(this, spec.suffix)) {
                 const boolIndex = this.widgets?.findIndex(w => w.name === category);
-                const shareIndex = this.widgets?.findIndex(
-                    w => w.name === category + SHARE_SUFFIX);
-                if (boolIndex === undefined || boolIndex < 0 || shareIndex < 0) continue;
+                const valueIndex = this.widgets?.findIndex(
+                    w => w.name === category + spec.suffix);
+                if (boolIndex === undefined || boolIndex < 0 || valueIndex < 0) continue;
                 const boolWidget = this.widgets[boolIndex];
-                const shareWidget = this.widgets[shareIndex];
+                const valueWidget = this.widgets[valueIndex];
                 // hidden, not removed: it still has to serialise
                 boolWidget.computeSize = () => [0, -4];
                 boolWidget.draw = () => {};
                 boolWidget.type = "alchemine-hidden";
-                this.widgets[shareIndex] = makeRow(this, boolWidget, shareWidget);
+                this.widgets[valueIndex] = makeRow(this, boolWidget, valueWidget, spec);
             }
             this.setSize(this.computeSize());
             return result;

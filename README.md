@@ -2,8 +2,9 @@
 
 [English](README.md) | [한국어](README_ko.md)
 
-Suggests the tags most relevant to your prompt from a 5.48M-post Danbooru dataset, and drops the ones that contradict it.
-It also turns a sentence into tags and draws Danbooru character tags.
+Suggests the tags most relevant to your prompt from a Danbooru dataset, and drops the ones that contradict it.
+It also turns a sentence into tags, draws Danbooru character tags, splits a prompt by category, and weights the
+categories you pick.
 
 ## Example
 
@@ -11,14 +12,16 @@ It also turns a sentence into tags and draws Danbooru character tags.
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
-The example workflow chains three nodes. **Tags Extractor** turns a sentence into tags, **Character Tags Generator**
-draws characters to join them, and **Tags Generator** grows the result into a full prompt.
+The example workflow chains five nodes. **Tags Extractor** turns a sentence into tags, **Character Tags Generator**
+draws characters to join them, **Tags Generator** grows the result into a full prompt, **Classify Tags** splits it
+by category, and **Weight Tags** weights the categories switched on.
 
 ## Usage
 
 ### Tags Generator
 
-Feed a prompt into **Tags Generator**, read the extended prompt out of `processed_text`.
+Feed a prompt into **Tags Generator**, read the extended prompt out of `text`, or the added tags alone out of
+`generated_text`.
 
 | Widget | What it does |
 |--------|--------------|
@@ -83,11 +86,16 @@ git clone https://github.com/alchemine/comfyui-generator-pack
 **Tags Conflict Filter**: drops tags contradicting the fixed ones, by co-occurrence lift rather than a
 hand-written conflict list. Tags Generator's veto as a node of its own, for tags from anywhere else.
 
-**Classify Tags**: splits a prompt into subject, clothes, body, expression, pose, background, objects,
-nsfw, others.
+**Classify Tags**: splits a prompt into Tags Generator's eight categories, grouped the same way, plus
+character for Danbooru character tags and others for what no category draws.
 
 **Group Tags**: one themed group per line; tags sharing a last (or first) word gather together, person tags
 lead. `cap` trims each group, colours first.
+
+**Weight Tags**: wraps the tags of the categories switched on in `(tag:weight)`, a toggle and a weight for
+each of Classify Tags' outputs (Tags Generator's eight, character and others). `expressions 1.5` and
+`background 1.2` turn `:3, shirt, library` into `(:3:1.5), shirt, (library:1.2)`. Other tags pass through. `mode`
+says what a weight a tag already has becomes: `replace` swaps it, keeping its sign, and `multiply` multiplies.
 
 ## Data
 

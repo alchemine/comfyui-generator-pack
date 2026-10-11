@@ -7,6 +7,7 @@ from .nodes.tags import (
     TagsConflictFilter,
     ClassifyTags,
     GroupTags,
+    WeightTags,
 )
 
 
@@ -18,6 +19,7 @@ NODE_CLASS_MAPPINGS = {
     "TagsConflictFilter": TagsConflictFilter,
     "ClassifyTags": ClassifyTags,
     "GroupTags": GroupTags,
+    "WeightTags": WeightTags,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -29,9 +31,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "TagsConflictFilter": "Tags Conflict Filter",
     "ClassifyTags": "Classify Tags",
     "GroupTags": "Group Tags",
+    "WeightTags": "Weight Tags",
 }
 
 
-# TagsGenerator draws each category toggle and its share on one row, and
-# CharacterTagsGenerator its sex toggles and year limits; see web/js/
+# TagsGenerator and WeightTags draw each category toggle and its share or
+# weight on one row, and CharacterTagsGenerator its sex toggles and year
+# limits; see web/js/
 WEB_DIRECTORY = "./web/js"
