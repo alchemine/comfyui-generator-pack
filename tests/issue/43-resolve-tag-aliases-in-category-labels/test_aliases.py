@@ -70,7 +70,7 @@ def test_normalize_keeps_tag_parentheses(tag, bare):
 def test_classify_emoticons():
     buckets = tag_guard.classify_tags(":3, :\\), ganyu \\(genshin impact\\)")
     assert buckets["expressions"] == [":3", ":)"]
-    assert buckets["others"] == ["ganyu (genshin impact)"]
+    assert buckets["character"] == ["ganyu (genshin impact)"]
 
 
 def test_order_tags_places_aliases(pack):

@@ -6,7 +6,7 @@ Standalone (no ComfyUI dependency) so it can be unit-tested and reused.
 import re
 
 try:
-    from . import artifact, tag_category
+    from . import artifact, tag_category, tag_characters
     from .tag_data import (
         CLOTHES,
         CLOTHES_CONFLICTS,
@@ -18,6 +18,7 @@ try:
 except ImportError:
     import artifact
     import tag_category
+    import tag_characters
     from tag_data import (
         CLOTHES,
         CLOTHES_CONFLICTS,
@@ -210,9 +211,10 @@ def pair_stats(tag_a, tag_b):
 # --- coarse buckets --------------------------------------------------------
 # Buckets come from the same labels TagsGenerator samples with
 # (resources/group/, via tag_category), grouped the way its widgets are:
-# one bucket per widget, in widget order, plus "others" for what no
-# widget draws. Tags the labels do not cover fall back to the static
-# tables above.
+# one bucket per widget, in widget order, plus "character" for the
+# Danbooru character tags the labels never cover and "others" for what
+# no widget draws. Other tags the labels do not cover fall back to the
+# static tables above.
 
 # What each widget actually turns, when it is not the category of the same
 # name. The categories a widget stands for share its one budget.
@@ -228,6 +230,7 @@ CATEGORY_GROUPS = {
 
 BUCKETS = (
     "subject",
+    "character",
     "pose",
     "expressions",
     "body",
@@ -264,6 +267,8 @@ def bucket_of(tag):
     """Return the bucket name for a normalized tag."""
     if is_subject(tag):
         return "subject"
+    if tag in tag_characters.character_names():
+        return "character"
 
     labels = tag_category.load_labels()
     if labels and labels.knows(tag):
