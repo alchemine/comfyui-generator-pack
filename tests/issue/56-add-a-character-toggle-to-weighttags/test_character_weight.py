@@ -16,6 +16,7 @@ CATEGORIES = (
     "bg_details",
     "framing",
     "character",
+    "others",
 )
 
 
