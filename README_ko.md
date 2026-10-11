@@ -11,8 +11,9 @@
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
-예시 워크플로는 세 노드를 잇습니다. **Tags Extractor**가 문장을 태그로 바꾸고, **Character Tags Generator**가
-뽑은 캐릭터를 거기에 붙이고, **Tags Generator**가 그 결과를 프롬프트 전체로 키웁니다.
+예시 워크플로는 다섯 노드를 잇습니다. **Tags Extractor**가 문장을 태그로 바꾸고, **Character Tags Generator**가
+뽑은 캐릭터를 거기에 붙이고, **Tags Generator**가 그 결과를 프롬프트 전체로 키우고, **Classify Tags**가 그것을
+카테고리별로 나누고, **Weight Tags**가 켠 카테고리에 weight를 줍니다.
 
 ## 사용법
 

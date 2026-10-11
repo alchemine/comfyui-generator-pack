@@ -11,8 +11,9 @@ It also turns a sentence into tags and draws Danbooru character tags.
 
 ![Workflow](workflows/comfyui-generator-pack-workflow.png)
 
-The example workflow chains three nodes. **Tags Extractor** turns a sentence into tags, **Character Tags Generator**
-draws characters to join them, and **Tags Generator** grows the result into a full prompt.
+The example workflow chains five nodes. **Tags Extractor** turns a sentence into tags, **Character Tags Generator**
+draws characters to join them, **Tags Generator** grows the result into a full prompt, **Classify Tags** splits it
+by category, and **Weight Tags** weights the categories switched on.
 
 ## Usage
 
