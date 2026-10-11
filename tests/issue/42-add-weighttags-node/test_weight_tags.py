@@ -8,6 +8,7 @@ PACK_DIR = Path(__file__).resolve().parents[3]
 
 CATEGORIES = (
     "subject",
+    "character",
     "pose",
     "expressions",
     "body",
