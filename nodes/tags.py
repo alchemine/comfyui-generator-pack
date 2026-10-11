@@ -6,6 +6,7 @@ ReplaceUnderscores carry no node surface: TagsGenerator runs its draw
 through that pipeline before counting what survived.
 """
 
+import math
 import re
 import random
 import textwrap
@@ -1796,6 +1797,29 @@ class ClassifyTags(BasePrompt):
         return (text,)
 
 
+# Prompt emphasis: each wrapping ( multiplies the weight by this, each [
+# divides by it, as ComfyUI's prompt parser reads them.
+_EMPHASIS = 1.1
+_WEIGHTED_RE = re.compile(r"^(.+):(-?[0-9.]+)\s*$")
+
+
+def _weight_of(tag):
+    """The weight a prompt token carries, 1.0 when it names none.
+
+    (x:1.2) is 1.2, ((x)) 1.21, [x] 1/1.1, and ((x:1.2)) 1.2 * 1.1: the
+    parentheses around a number are syntax, the rest emphasis, and they
+    multiply with the number, which may be negative.
+    """
+    t = tag.strip()
+    weight = 1.0
+    while len(t) > 1 and t[0] + t[-1] in ("()", "[]"):
+        if t[0] == "(" and (m := _WEIGHTED_RE.match(t[1:-1])):
+            return weight * float(m.group(2))
+        weight *= _EMPHASIS if t[0] == "(" else 1 / _EMPHASIS
+        t = t[1:-1]
+    return weight
+
+
 class WeightTags(BasePrompt):
     """Weight the tags of the chosen categories, leave the rest alone.
 
@@ -1804,9 +1828,11 @@ class WeightTags(BasePrompt):
     light and effects, then character for Danbooru character tags and
     others for what none of them claims; each toggle has its own weight
     beside it. A tag of a category switched off passes through, and so
-    does BREAK, which is prompt syntax rather than a tag. A weight the
-    tag already carries is replaced, not multiplied:
-    (library:1.2) under background 1.5 comes back (library:1.5).
+    does BREAK, which is prompt syntax rather than a tag. `mode` says
+    what happens to a weight the tag already carries: replace keeps only
+    its sign, so (library:1.2) under background 1.5 comes back
+    (library:1.5) and (abc:-1.1) comes back (abc:-1.5); multiply
+    multiplies, so they come back (library:1.8) and (abc:-1.65).
 
     Examples:
         Input: text=":3, :\\), shirt, 1girl, library",
@@ -1818,6 +1844,16 @@ class WeightTags(BasePrompt):
     INPUT_TYPES = lambda: {
         "required": {
             "text": ("STRING", {"forceInput": True}),
+            "mode": (
+                ["replace", "multiply"],
+                {
+                    "default": "replace",
+                    "tooltip": "What a weight the tag already has becomes: "
+                    "replace swaps it for the category's weight, keeping "
+                    "its sign; multiply multiplies the two. ((x)) counts "
+                    "as 1.21 and [x] as 1/1.1.",
+                },
+            ),
             **{
                 key: widget
                 for name in BUCKETS
@@ -1857,7 +1893,7 @@ class WeightTags(BasePrompt):
 
     @classmethod
     @exception_handler
-    def execute(cls, text: str, **categories) -> tuple[str]:
+    def execute(cls, text: str, mode: str = "replace", **categories) -> tuple[str]:
         weights = {
             name: categories.get(name + _WEIGHT_SUFFIX, 1.1)
             for name in BUCKETS
@@ -1872,6 +1908,11 @@ class WeightTags(BasePrompt):
             if tag and tag != "BREAK":
                 weight = weights.get(bucket_of(normalize(tag)))
             if weight is not None:
+                old = _weight_of(tag)
+                weight = (
+                    old * weight if mode == "multiply" else math.copysign(weight, old)
+                )
+                weight = round(weight, 3)
                 lead = piece[: len(piece) - len(piece.lstrip())]
                 trail = piece[len(piece.rstrip()) :]
                 piece = f"{lead}({unwrap(tag)}:{weight:g}){trail}"
@@ -1879,8 +1920,8 @@ class WeightTags(BasePrompt):
         return (",".join(out),)
 
     @classmethod
-    def IS_CHANGED(cls, text: str, **categories) -> tuple:
-        return (text, tuple(sorted(categories.items())))
+    def IS_CHANGED(cls, text: str, mode: str = "replace", **categories) -> tuple:
+        return (text, mode, tuple(sorted(categories.items())))
 
 
 # Families that read as one decorative motif, capped by shared first word.

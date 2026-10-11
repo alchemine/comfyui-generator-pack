@@ -37,7 +37,7 @@ def weight(pack):
 def test_widgets_follow_buckets(pack):
     required = pack.NODE_CLASS_MAPPINGS["WeightTags"].INPUT_TYPES()["required"]
     pairs = tuple(key for name in tag_guard.BUCKETS for key in (name, name + "_weight"))
-    assert tuple(required) == ("text", *pairs)
+    assert tuple(required) == ("text", "mode", *pairs)
 
 
 def test_others_weight(weight):

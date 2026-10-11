@@ -92,7 +92,8 @@ character, 어느 카테고리도 뽑지 않는 태그는 others입니다.
 
 **Weight Tags**: 켠 카테고리의 태그를 `(태그:weight)`로 감쌉니다. Classify Tags의 출력(Tags Generator의
 여덟 개, character, others)마다 토글과 weight가 있습니다. `expressions 1.5`와 `background 1.2`를 켜면 `:3, shirt, library`는
-`(:3:1.5), shirt, (library:1.2)`가 됩니다. 나머지 태그는 그대로 지나가고, 태그에 이미 있던 weight는 바뀝니다.
+`(:3:1.5), shirt, (library:1.2)`가 됩니다. 나머지 태그는 그대로 지나갑니다. 태그에 이미 있던 weight는 `mode`가 `replace`면 부호만 남기고 바뀌고,
+`multiply`면 곱해집니다.
 
 ## 데이터
 

@@ -41,4 +41,4 @@ def test_classify_outputs(pack):
 def test_weight_widgets(pack):
     required = pack.NODE_CLASS_MAPPINGS["WeightTags"].INPUT_TYPES()["required"]
     pairs = tuple(key for name in ORDER for key in (name, name + "_weight"))
-    assert tuple(required) == ("text", *pairs)
+    assert tuple(required) == ("text", "mode", *pairs)
