@@ -13,6 +13,7 @@ recognises characters by.
 """
 
 import csv
+import re
 from collections import namedtuple
 
 try:
@@ -27,8 +28,11 @@ _SHA256 = "f5c8c3787759c411fe416490aff95df567a75f8d3d84db8f3d0151085fe1bbf4"
 
 Character = namedtuple("Character", "name posts first_year sex")
 
-# Danbooru's category code for character tags in the dump
+# Danbooru's category codes in the dump
+_GENERAL = "0"
 _CHARACTER = "4"
+# the trailing "(arknights)" qualifiers, all of them: amiya_(medic)_(arknights)
+_QUALIFIER_RE = re.compile(r"(_\([^()]*\))+$")
 
 
 @artifact.lazy
@@ -42,13 +46,27 @@ def load_characters():
 
 @artifact.lazy
 def character_names():
-    """Every character tag and alias in the dump, spaced and lowercased."""
+    """Every character tag and alias in the dump, spaced and lowercased.
+
+    A character's bare name counts too: Danbooru files amiya as
+    amiya_(arknights) and has no alias for plain amiya, yet a prompt
+    says amiya. The bare name is skipped when it is a general tag in
+    its own right (rose, cat, king), where the flower is the likelier
+    meaning.
+    """
     with open(artifact.bundled("danbooru-tags.txt"), newline="", encoding="utf-8") as f:
-        rows = [r for r in csv.reader(f) if len(r) >= 2 and r[1] == _CHARACTER]
+        rows = [r for r in csv.reader(f) if len(r) >= 2]
+    general = {r[0] for r in rows if r[1] == _GENERAL}
     names = set()
     for row in rows:
+        if row[1] != _CHARACTER:
+            continue
         aliases = row[3].split(",") if len(row) >= 4 else []
-        for spelling in [row[0], *aliases]:
+        bare = _QUALIFIER_RE.sub("", row[0])
+        spellings = [row[0], *aliases]
+        if bare != row[0] and bare not in general:
+            spellings.append(bare)
+        for spelling in spellings:
             spelling = spelling.strip().lower().replace("_", " ")
             if spelling:
                 names.add(spelling)
