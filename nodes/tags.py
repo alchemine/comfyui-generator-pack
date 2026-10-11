@@ -26,6 +26,7 @@ from .lib.tag_guard import (
     CATEGORY_NAMES,
     BUCKETS,
     classify_tags,
+    normalize,
 )
 from .lib.tag_category import load_labels
 from .lib.tag_characters import load_characters
@@ -885,9 +886,7 @@ def _sort_by_category(items, order, tags_of):
     def rank(item):
         votes = defaultdict(int)
         for tag in tags_of(item):
-            bare = BasePrompt.remove_weight(tag).strip().strip("()")
-            bare = bare.replace("\\(", "(").replace("\\)", ")")
-            name = labels.category_name(bare)
+            name = labels.category_name(BasePrompt.remove_weight(normalize(tag)))
             if name in rank_of:
                 votes[rank_of[name]] += 1
         if not votes:

@@ -7,9 +7,11 @@ knob does this belong to" and "how explicit is it":
                           tag describes; `order` fixes the indices
     ratings_v1.0.json     tag  -> g/s/q/e, from rating-tier statistics
 
-A tag the table does not list has no category. Ratings are
-cumulative, so a level is a ceiling: asking for "s" admits g and s
-tags.
+A tag the table does not list has no category. Both tables are
+keyed by the current Danbooru name; the aliases of a listed tag
+(tag_alias) answer with the same label, so ":)" reads as smile.
+Ratings are cumulative, so a level is a ceiling: asking for "s"
+admits g and s tags.
 """
 
 import json
@@ -17,9 +19,10 @@ import math
 import os
 
 try:
-    from . import artifact
+    from . import artifact, tag_alias
 except ImportError:  # flat import (playground scripts put nodes/lib on sys.path)
     import artifact
+    import tag_alias
 
 RATING_ORDER = ("g", "s", "q", "e")
 
@@ -28,6 +31,25 @@ _DIR = artifact.resource("group")
 
 def normalize(tag):
     return tag.strip().lower().replace("_", " ")
+
+
+def _with_aliases(table):
+    """Give every alias of a listed tag that tag's label.
+
+    tag_alias.expand_index would do this, but it adds the dump's
+    spellings ("long_hair") and the tables here are keyed by
+    normalize ("long hair"); a spelling the table lists keeps its own
+    label either way.
+    """
+    for members in tag_alias.groups().values():
+        members = [normalize(m) for m in members]
+        present = [m for m in members if m in table]
+        if not present:
+            continue
+        label = table[present[0]]
+        for m in members:
+            table.setdefault(m, label)
+    return table
 
 
 class Labels:
@@ -44,11 +66,13 @@ class Labels:
                 return json.load(f)
 
         cats = load("categories_v2.2.json")
-        self._ratings = load("ratings_v1.0.json")
+        self._ratings = _with_aliases(load("ratings_v1.0.json"))
 
         self.names = list(cats["order"])
         rank_of = {name: i for i, name in enumerate(self.names)}
-        self._category = {tag: rank_of[name] for tag, name in cats["tags"].items()}
+        self._category = _with_aliases(
+            {tag: rank_of[name] for tag, name in cats["tags"].items()}
+        )
 
     def category_of(self, tag):
         """Category index, None when the tag is unlabelled."""
