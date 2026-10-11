@@ -26,10 +26,13 @@ function autoOn(node) {
     return Boolean(node.widgets?.find(w => w.name === "auto")?.value);
 }
 
-// Per node: the suffix of the value widget, how its value reads, and
-// what besides its own toggle makes a row inert.
+// Per node: the suffix of the value widget, how its value reads, what
+// besides its own toggle makes a row inert, and the width a new node gets.
+// LiteGraph sizes a node so its longest input and longest output label fit
+// side by side, but TagsGenerator's generated_text sits alone on its row,
+// so that width would be wasted; 210 is what the node had before it.
 const NODES = {
-    TagsGenerator: { suffix: "_share", label: shareLabel, inert: autoOn },
+    TagsGenerator: { suffix: "_share", label: shareLabel, inert: autoOn, width: 210 },
     WeightTags: { suffix: "_weight", label: v => Number(v).toFixed(2), inert: () => false },
 };
 
@@ -187,7 +190,8 @@ app.registerExtension({
                 boolWidget.type = "alchemine-hidden";
                 this.widgets[valueIndex] = makeRow(this, boolWidget, valueWidget, spec);
             }
-            this.setSize(this.computeSize());
+            const [w, h] = this.computeSize();
+            this.setSize([spec.width ?? w, h]);
             return result;
         };
     },
