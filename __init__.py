@@ -35,6 +35,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 }
 
 
-# TagsGenerator draws each category toggle and its share on one row, and
-# CharacterTagsGenerator its sex toggles and year limits; see web/js/
+# TagsGenerator and WeightTags draw each category toggle and its share or
+# weight on one row, and CharacterTagsGenerator its sex toggles and year
+# limits; see web/js/
 WEB_DIRECTORY = "./web/js"

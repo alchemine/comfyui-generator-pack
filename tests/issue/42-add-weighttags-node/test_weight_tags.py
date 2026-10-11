@@ -48,9 +48,10 @@ def test_registered(pack):
 
 def test_widget_order(pack):
     required = pack.NODE_CLASS_MAPPINGS["WeightTags"].INPUT_TYPES()["required"]
-    assert tuple(required) == ("text", "weight", *CATEGORIES)
-    assert required["weight"][1]["default"] == 1.5
+    pairs = tuple(key for name in CATEGORIES for key in (name, name + "_weight"))
+    assert tuple(required) == ("text", *pairs)
     for name in CATEGORIES:
+        assert required[name + "_weight"][1]["default"] == 1.1
         assert required[name][0] == "BOOLEAN"
         assert required[name][1]["default"] is False
 
@@ -59,23 +60,27 @@ def test_example(weight):
     assert (
         weight(
             ":3, :\\), shirt, 1girl, library",
-            weight=1.5,
             expressions=True,
+            expressions_weight=1.5,
             background=True,
+            background_weight=1.5,
         )
         == "(:3:1.5), (:\\):1.5), shirt, 1girl, (library:1.5)"
     )
 
 
 def test_group_covers_hair(weight):
-    assert weight("long hair, smile", weight=1.2, body=True) == "(long hair:1.2), smile"
-
-
-def test_existing_weight_is_replaced(weight):
-    assert weight("(library:1.2), ((shirt))", weight=1.5, background=True) == (
-        "(library:1.5), ((shirt))"
+    assert (
+        weight("long hair, smile", body=True, body_weight=1.2)
+        == "(long hair:1.2), smile"
     )
 
 
+def test_existing_weight_is_replaced(weight):
+    assert weight(
+        "(library:1.2), ((shirt))", background=True, background_weight=1.5
+    ) == ("(library:1.5), ((shirt))")
+
+
 def test_nothing_on_leaves_text(weight):
-    assert weight("1girl, library", weight=1.5) == "1girl, library"
+    assert weight("1girl, library") == "1girl, library"
