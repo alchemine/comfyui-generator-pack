@@ -39,16 +39,22 @@ CATEGORY_NAMES = (
     "background",
 )
 
-_WEIGHT_RE = re.compile(r":[0-9.]+\s*$")
+_WEIGHT_RE = re.compile(r"^(.+):[0-9.-]+\s*$")
 
 
 def normalize(tag):
-    """Lowercase, underscores->spaces, strip weights/parens/backslashes."""
+    """Lowercase, underscores->spaces, strip weights/parens/backslashes.
+
+    Only a wrapper is syntax: "(smile:1.2)" and "((smile))" are smile,
+    while ":)" and "star (sky)" keep their parentheses and ":3" keeps
+    its digit.
+    """
     t = tag.strip().lower()
     t = t.replace("\\(", "(").replace("\\)", ")")
-    t = t.strip("()")
-    t = _WEIGHT_RE.sub("", t)
-    t = t.strip("()")
+    while len(t) > 1 and t[0] == "(" and t[-1] == ")":
+        t = t[1:-1]
+    if m := _WEIGHT_RE.match(t):
+        t = m.group(1)
     t = t.replace("_", " ")
     return re.sub(r"\s+", " ", t).strip()
 
