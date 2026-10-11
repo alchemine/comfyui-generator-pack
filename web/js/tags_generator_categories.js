@@ -174,6 +174,16 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         const spec = NODES[nodeData.name];
         if (!spec) return;
+        // the frontend floors resizing and loading at computeSize, so the
+        // width cap has to live there, not only in the size a node starts at
+        if (spec.width) {
+            const computeSize = nodeType.prototype.computeSize;
+            nodeType.prototype.computeSize = function (out) {
+                const size = computeSize.call(this, out);
+                size[0] = Math.min(size[0], spec.width);
+                return size;
+            };
+        }
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
@@ -190,8 +200,7 @@ app.registerExtension({
                 boolWidget.type = "alchemine-hidden";
                 this.widgets[valueIndex] = makeRow(this, boolWidget, valueWidget, spec);
             }
-            const [w, h] = this.computeSize();
-            this.setSize([spec.width ?? w, h]);
+            this.setSize(this.computeSize());
             return result;
         };
     },
