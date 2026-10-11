@@ -46,7 +46,7 @@ def weight(pack):
 def test_character_follows_framing(pack):
     required = pack.NODE_CLASS_MAPPINGS["WeightTags"].INPUT_TYPES()["required"]
     pairs = tuple(key for name in CATEGORIES for key in (name, name + "_weight"))
-    assert tuple(required) == ("text", *pairs)
+    assert tuple(required) == ("text", "mode", *pairs)
 
 
 def test_character_weight(weight):

@@ -51,7 +51,7 @@ def test_registered(pack):
 def test_widget_order(pack):
     required = pack.NODE_CLASS_MAPPINGS["WeightTags"].INPUT_TYPES()["required"]
     pairs = tuple(key for name in CATEGORIES for key in (name, name + "_weight"))
-    assert tuple(required) == ("text", *pairs)
+    assert tuple(required) == ("text", "mode", *pairs)
     for name in CATEGORIES:
         assert required[name + "_weight"][1]["default"] == 1.1
         assert required[name][0] == "BOOLEAN"

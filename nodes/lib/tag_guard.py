@@ -46,12 +46,12 @@ _WEIGHT_RE = re.compile(r"^(.+):[0-9.-]+\s*$")
 def unwrap(tag):
     """Strip the weight syntax, keeping the tag's own spelling.
 
-    Only a wrapper is syntax: "(smile:1.2)" and "((smile))" are smile,
-    while ":)" and "star (sky)" keep their parentheses and ":3" keeps
-    its digit.
+    Only a wrapper is syntax: "(smile:1.2)", "((smile))" and "[smile]"
+    are smile, while ":)" and "star (sky)" keep their parentheses and
+    ":3" keeps its digit.
     """
     t = tag.strip()
-    while len(t) > 1 and t[0] == "(" and t[-1] == ")":
+    while len(t) > 1 and t[0] + t[-1] in ("()", "[]"):
         t = t[1:-1]
     if m := _WEIGHT_RE.match(t):
         t = m.group(1)
