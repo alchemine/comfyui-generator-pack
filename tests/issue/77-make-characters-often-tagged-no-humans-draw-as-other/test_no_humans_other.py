@@ -10,9 +10,22 @@ DATA = PACK_DIR / "resources" / "characters_v1.txt"
 
 # tagged no humans far more often than the average post: pokemon,
 # kirby, an eevee evolution, a gundam
-NON_HUMANS = ["pikachu", "eevee", "kirby", "charizard", "snorlax", "umbreon", "nu gundam"]
+NON_HUMANS = [
+    "pikachu",
+    "eevee",
+    "kirby",
+    "charizard",
+    "snorlax",
+    "umbreon",
+    "nu gundam",
+]
 # drawn as people, however often a pokemon stands beside them
-HUMANS = {"hatsune miku": "girl", "gardevoir": "girl", "lillie (pokemon)": "girl", "link": "boy"}
+HUMANS = {
+    "hatsune miku": "girl",
+    "gardevoir": "girl",
+    "lillie (pokemon)": "girl",
+    "link": "boy",
+}
 
 
 @pytest.fixture(scope="module")
@@ -71,6 +84,10 @@ def test_girl_and_boy_never_draw_a_non_human(generate, data):
 def test_other_draws_non_humans(generate, data):
     drawn = set()
     for seed in range(200):
-        drawn.update(names(generate(n=10, girl=False, other=True, min_count=100, seed=seed), data))
+        drawn.update(
+            names(
+                generate(n=10, girl=False, other=True, min_count=100, seed=seed), data
+            )
+        )
     assert drawn & set(NON_HUMANS)
     assert not drawn & set(HUMANS)
