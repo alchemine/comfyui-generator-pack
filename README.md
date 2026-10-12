@@ -55,7 +55,7 @@ Draws Danbooru character tags from the characters with at least 100 posts, all e
 | Widget | What it does |
 |--------|--------------|
 | `n` | How many characters to draw |
-| `sex` | Which of girl, boy, other to draw from, at least one. A character's sex is whichever of `1girl`, `1boy`, `1other` sits on most of its solo posts, `other` on a tie |
+| `sex` | Which of girl, boy, other to draw from, at least one. A character's sex is whichever of `1girl`, `1boy`, `1other` sits on most of its solo posts, `other` on a tie. Characters tagged `no humans` at twice the average rate or more (pokemon, mecha) are `other` too |
 | `subject` | Puts the person count in front: `1girl, solo` for one girl, `1girl, 1boy` for a girl and a boy |
 | `year_min` / `year_max` | A toggle and a year each, limiting the year of the character's first post |
 | `min_count` | Only characters with at least this many posts |
