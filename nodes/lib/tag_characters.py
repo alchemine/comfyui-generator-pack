@@ -4,7 +4,9 @@ resources/characters_v1.txt is the pool CharacterTagsGenerator draws
 from: one row per Danbooru character tag with at least 100 posts in
 danbooru-2026-clean-metadata (to 2025-09): name (spaced), posts, the
 year of its first post, and its sex -- the one of 1girl, 1boy, 1other
-found on the most solo posts with it, other on a tie or none. Built by
+found on the most solo posts with it, other on a tie or none, and other
+again when it sits on no_humans posts at twice the average rate or
+more (pikachu, kirby, gundams). Built by
 playground/tag-conflict-filter/precompute_characters.py.
 
 resources/danbooru-tags.txt (name, category, posts, aliases) names
@@ -23,8 +25,8 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
 
 _PATH = artifact.resource("characters_v1.txt")
 # not committed (560KB); fetched from the data release on first use
-_URL = artifact.url_for("data-v2.0.0", "characters_v1.txt")
-_SHA256 = "f5c8c3787759c411fe416490aff95df567a75f8d3d84db8f3d0151085fe1bbf4"
+_URL = artifact.url_for("data-v5.1.0", "characters_v1.txt")
+_SHA256 = "ef76c8e7588102120ed120d0576920150ca1d986b20e7743641c51d869bd6691"
 
 Character = namedtuple("Character", "name posts first_year sex")
 

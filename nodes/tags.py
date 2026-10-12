@@ -1649,7 +1649,8 @@ class CharacterTagsGenerator(BasePrompt):
                     {
                         "default": sex == "girl",
                         "tooltip": "Draw characters whose solo posts are "
-                        "mostly 1%s. Characters with a tie or no solo post "
+                        "mostly 1%s. Characters with a tie or no solo post, "
+                        "and ones often tagged no humans (pokemon, mecha), "
                         "count as other." % sex,
                     },
                 )
