@@ -21,7 +21,7 @@ uncommon in that kind of picture -- shrimp tempura in a 1girl+1boy
 scene -- is left out, because vetoing it would cost candidates without
 buying consistency.
 
-alpha is the runtime knob, as in tag_avoid: significance is stored per
+alpha is the runtime knob: significance is stored per
 entry, so tightening the test is a comparison rather than a rebuild.
 Built by playground/tag-conflict-filter/precompute_subject_joint.py.
 """
@@ -36,8 +36,8 @@ _PATH = artifact.resource("subject_joint_v1.npz")
 _URL = artifact.url_for("data-v1.0.0", "subject_joint_v1.npz")
 _SHA256 = "7cd0b1c461e81198cb30a5ea46037eb4a949c5a0a5ef6e1383039756b19be71e"
 
-# The build runs at 1e-3. Kept the same here: unlike the avoidance
-# table, an entry only survives the build if the conjunction also
+# The build runs at 1e-3. Kept the same here: an entry only survives
+# the build if the conjunction also
 # contradicts what the parts predict, so the surviving pairs are few and
 # deliberate rather than a significance sweep that needs reining in.
 DEFAULT_ALPHA = 1e-3
