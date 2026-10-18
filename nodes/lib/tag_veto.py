@@ -1,19 +1,26 @@
 """TagVeto: drop suggested tags that contradict the reference tags.
 
-Runtime port of playground/experiments/veto.ipynb. Built on
-danbooru2026_clean (5.48M solo posts, 8,320 general tags).
+Runtime port of experiments/logic-v2.0.0.
+Lift comes from tag_lift_v1.npz (4.8M Danbooru solo posts, 21,378
+general tags); composition tags still use tag_veto.npz. Once the
+reference tags put more than one figure in the picture (2girls, hug,
+yuri, multiple views, ...), lift comes from tag_lift_all_v1.npz (8.1M
+posts, any number of characters) instead: two girls may well have blonde
+and red hair.
 
 Which suggestion is *best* is subjective; which suggestion is
 *impossible* is not. Two frequent tags that almost never share a post
 are mutually exclusive in practice, which shows up as
 lift = observed / expected co-occurrence far below 1.
 
-Judgment rules (see the notebook for the measurements behind each):
-  - veto when lift < lift_th. The E gate (expected co-occurrence >= 15,
-    below which an observed 0 proves nothing) is baked into the artifact.
-  - composition tags (2girls, yuri, ...) are judged on the unfiltered
-    corpus: the solo corpus starves them and makes their lift
-    arithmetically 1.0.
+Judgment rules:
+  - veto when the pair is expected together fewer than 3 times (E < 3):
+    below that, never seeing the two together is not evidence either way
+    (e^-E >= 0.05), and unseen-but-rare pairs are mostly conflicts.
+  - otherwise veto when lift < lift_th. The default 0.5 vetoes pairs seen
+    together under half as often as chance.
+  - composition tags (2girls, yuri, ...) the solo corpus lacks are judged
+    on the unfiltered corpus.
   - character-count/gender tags are only compared with each other
     (1boy vs large_breasts is avoidance, not substitution).
   - fixed tags are assumed consistent and always kept; surviving
@@ -27,18 +34,26 @@ from collections import namedtuple
 from functools import lru_cache
 
 try:
-    from . import artifact, tag_alias
+    from . import artifact, tag_alias, tag_solo, tag_subject
 except ImportError:  # flat import (playground scripts put nodes/lib on sys.path)
     import artifact
     import tag_alias
+    import tag_solo
+    import tag_subject
 
-E_MIN = 15.0
-DEFAULT_LIFT_TH = 0.1
+E_MIN = 3.0
+DEFAULT_LIFT_TH = 0.5
 
 _VETO_PATH = artifact.resource("tag_veto.npz")
 # not committed (13MB); fetched from the data release on first use
 _VETO_URL = artifact.url_for("data-v1.0.0", "tag_veto.npz")
 _VETO_SHA256 = "3fb3603bcadef8e8add34eb742836215e3c98264cbcdec7007b16c2215b4bb37"
+_LIFT_PATH = artifact.resource("tag_lift_v1.npz")
+_LIFT_URL = artifact.url_for("data-v6.0.0", "tag_lift_v1.npz")
+_LIFT_SHA256 = "b2dffb00ed2d5a1eba250825d2bf15ba0f89510c2b1bd3f7fa6ec839baa14756"
+_LIFT_ALL_PATH = artifact.resource("tag_lift_all_v1.npz")
+_LIFT_ALL_URL = artifact.url_for("data-v6.0.0", "tag_lift_all_v1.npz")
+_LIFT_ALL_SHA256 = "1e66e71b1fbb4750e4666ac0697dc10cf12aac0768cd0fe4316d9fd514f51511"
 
 
 # --- tag normalization -----------------------------------------------------
@@ -157,29 +172,50 @@ Verdict = namedtuple("Verdict", "raw tag keep source ref lift")
 
 
 class TagVeto:
-    """Judge suggestions against reference tags using tag_veto.npz."""
+    """Judge suggestions against reference tags using tag_lift_v1.npz and,
+    for composition tags, tag_veto.npz."""
 
-    def __init__(self, path=_VETO_PATH):
+    def __init__(self, path=_VETO_PATH, lift_path=_LIFT_PATH, lift_all_path=_LIFT_ALL_PATH):
         import numpy as np
 
         self._np = np
         if path == _VETO_PATH:
             artifact.ensure(path, _VETO_URL, _VETO_SHA256, "TagVeto", "13MB")
+        if lift_path == _LIFT_PATH:
+            artifact.ensure(lift_path, _LIFT_URL, _LIFT_SHA256, "TagVeto", "40MB")
         data = np.load(path)
+        lifts = np.load(lift_path)
 
         self.vocab = [str(t) for t in data["tags"]]
+        self._n = len(self.vocab)
+        # the lift table's tags join the vocabulary after the veto's own,
+        # so the sampler can ask about them too
+        pos = {t: i for i, t in enumerate(self.vocab)}
+        lift_tags = [str(t) for t in lifts["tags"]]
+        for t in lift_tags:
+            if t not in pos:
+                pos[t] = len(self.vocab)
+                self.vocab.append(t)
         # aliases resolve to the same row, so a prompt may spell a tag
         # any way Danbooru ever has; self.vocab stays the real names
-        self.index = tag_alias.expand_index({t: i for i, t in enumerate(self.vocab)})
-        self._n = len(self.vocab)
+        self.index = tag_alias.expand_index(pos)
+        n_all = len(self.vocab)
 
-        # exclusion pairs (lift < 0.5), stored as a sorted array of
-        # i*n+j keys (i < j) for binary-search lookup: a dict would cost
-        # ~10x the memory for 1.5M pairs.
-        keys = data["pair_a"].astype(np.int64) * self._n + data["pair_b"]
-        order = np.argsort(keys)
-        self._pair_keys = keys[order]
-        self._pair_lift = data["pair_lift"].astype(np.float32)[order]
+        # lift tables, numbered by their own tags (the same list for both
+        # corpora): one bit per pair (i < j, packed upper triangle) for
+        # "expected together fewer than E_MIN times" and one for "never
+        # together", and the pairs with 0 < lift < 1 as a sorted array of
+        # i*n+j keys for binary-search lookup (a dict would cost ~10x the
+        # memory for 8.4M pairs); lift is stored in 1/256 steps, read at
+        # the middle. The all-posts table loads on the first crowded prompt.
+        self._lift_id = np.full(n_all, -1, dtype=np.int64)
+        self._lift_id[[pos[t] for t in lift_tags]] = np.arange(len(lift_tags))
+        self._n_lift = len(lift_tags)
+        self._lift_all_path = lift_all_path
+        # the subject-conjunction table, mapped onto this vocabulary (the
+        # sampler maps its own copy onto its own), loaded on first use
+        self._joint = artifact.lazy(lambda: tag_subject.SubjectJoint(self.vocab))
+        self._tables = {False: self._read_lifts(lifts)}
 
         # composition tags: co-occurrence rows over the unfiltered corpus
         self._starved = {str(t): row for row, t in enumerate(data["starved"])}
@@ -189,8 +225,12 @@ class TagVeto:
             [self._starved.get(t, -1) for t in self.vocab], dtype=np.int64
         )
         self._is_subject_row = np.array([is_subject(t) for t in self.vocab], dtype=bool)
-        self._cooc_all = data["starved_cooc"]
-        self._counts_all = data["counts_all"].astype(np.float64)
+        # tags only the lift table knows have no unfiltered counts; 0 marks
+        # them so the unfiltered path leaves their pairs alone
+        extra = n_all - self._n
+        cooc = data["starved_cooc"]
+        self._cooc_all = np.hstack([cooc, np.zeros((len(cooc), extra), dtype=cooc.dtype)])
+        self._counts_all = np.append(data["counts_all"].astype(np.float64), np.zeros(extra))
         self._n_all = float(data["n_all"])
 
         # bridge pairs (blue_eyes + red_eyes -> heterochromia): the
@@ -201,49 +241,101 @@ class TagVeto:
             for i, j, t in zip(data["bridge_a"], data["bridge_b"], data["bridge_t"])
         }
 
+    def _read_lifts(self, lifts):
+        """(never bits, rare bits, pair keys, pair lifts) of one lift table."""
+        np = self._np
+        assert len(lifts["tags"]) == self._n_lift
+        keys = lifts["pair_a"].astype(np.int64) * self._n_lift + lifts["pair_b"]
+        return lifts["bits"], lifts["rare"], keys, (lifts["pair_lift"].astype(np.float32) + 0.5) / 256
+
+    def _table(self, multi):
+        """The solo table, or (multi) the all-posts one, loaded on first use."""
+        if multi not in self._tables:
+            if self._lift_all_path == _LIFT_ALL_PATH:
+                artifact.ensure(self._lift_all_path, _LIFT_ALL_URL, _LIFT_ALL_SHA256, "TagVeto", "59MB")
+            self._tables[multi] = self._read_lifts(self._np.load(self._lift_all_path))
+        return self._tables[multi]
+
     # --- pair level -------------------------------------------------------
 
-    def pair_lift(self, a, b):
-        """lift for a pair, or None when the data says nothing:
-        out of vocabulary, not stored (lift >= 0.5), or below the E gate.
-        None always means "no veto"."""
+    def pair_lift(self, a, b, multi=False):
+        """lift for a pair, or None when the data says nothing (lift 1 or
+        more, or out of vocabulary). None always means "no veto". Lift-table
+        lift when both tags have it (solo posts, or all posts when multi);
+        a composition tag the table lacks falls back to the unfiltered
+        corpus."""
         if a not in self.index or b not in self.index:
             return None
+        if self._lift_id[self.index[a]] >= 0 and self._lift_id[self.index[b]] >= 0:
+            return self._lift_stored(a, b, multi)
         if a in self._starved or b in self._starved:
             return self._lift_unfiltered(a, b)
-        return self._lift_stored(a, b)
-
-    def _lift_stored(self, a, b):
-        i, j = sorted((self.index[a], self.index[b]))
-        key = i * self._n + j
-        pos = int(self._np.searchsorted(self._pair_keys, key))
-        if pos < len(self._pair_keys) and self._pair_keys[pos] == key:
-            return float(self._pair_lift[pos])
         return None
 
+    def pair_rare(self, a, b, multi=False):
+        """Whether both tags are in the lift table and the pair is expected
+        together fewer than E_MIN times."""
+        if a not in self.index or b not in self.index:
+            return False
+        i, j = sorted((self._lift_id[self.index[a]], self._lift_id[self.index[b]]))
+        if i < 0 or i == j:
+            return False
+        rare = self._table(multi)[1]
+        return bool(self._bit(rare, self._np.array([i]), self._np.array([j]))[0])
+
+    def _lift_stored(self, a, b, multi):
+        """Lift-table lift below 1, or None (1 or more, or a tag the lift
+        table lacks)."""
+        i, j = sorted((self._lift_id[self.index[a]], self._lift_id[self.index[b]]))
+        if i < 0 or i == j:
+            return None
+        lift = self._lifts(self._np.array([i]), self._np.array([j]), multi)[0]
+        return None if lift >= 1 else float(lift)
+
+    def _bit(self, packed, i, j):
+        """Packed upper-triangle bit for lift-table ids i < j (arrays)."""
+        n = self._n_lift
+        k = i * (2 * n - i - 1) // 2 + (j - i - 1)
+        return (packed[k >> 3] >> (7 - (k & 7))) & 1 == 1
+
+    def _lifts(self, i, j, multi):
+        """Lift for lift-table ids i < j (arrays), 1.0 where it is 1 or more."""
+        np = self._np
+        bits, _rare, pair_keys, pair_lift = self._table(multi)
+        never = self._bit(bits, i, j)
+        keys = i * self._n_lift + j
+        pos = np.minimum(np.searchsorted(pair_keys, keys), len(pair_keys) - 1)
+        hit = pair_keys[pos] == keys
+        return np.where(never, 0.0, np.where(hit, pair_lift[pos], 1.0))
+
     def _lift_unfiltered(self, a, b):
-        """Lift over all posts, for pairs involving a composition tag."""
+        """Lift over all posts, for pairs involving a composition tag; 0
+        below the E gate, None when either tag has no unfiltered count."""
         if a not in self._starved:
             a, b = b, a
         row, j = self._starved[a], self.index[b]
-        observed = float(self._cooc_all[row, j])
         expected = self._counts_all[self.index[a]] * self._counts_all[j] / self._n_all
-        if expected < E_MIN:
+        if not expected:
             return None
-        return observed / expected
+        if expected < E_MIN:
+            return 0.0
+        return float(self._cooc_all[row, j]) / expected
 
-    def conflict(self, cand, refs, lift_th=DEFAULT_LIFT_TH):
-        """First reference tag that cand contradicts, or None."""
+    def conflict(self, cand, refs, lift_th=DEFAULT_LIFT_TH, multi=False):
+        """First reference tag that cand contradicts, or None. multi judges
+        on all posts rather than solo ones (see crowded)."""
         cand_subject = is_subject(cand)  # same for every ref
         for ref in refs:
             if ref == cand or is_subject(ref) != cand_subject:
                 continue
-            lift = self.pair_lift(cand, ref)
+            if self.pair_rare(cand, ref, multi):
+                return ref
+            lift = self.pair_lift(cand, ref, multi)
             if lift is not None and lift < lift_th:
                 return ref
         return None
 
-    def conflict_mask(self, cand_ids, ref, lift_th=DEFAULT_LIFT_TH):
+    def conflict_mask(self, cand_ids, ref, lift_th=DEFAULT_LIFT_TH, multi=False):
         """Which of `cand_ids` contradict one reference tag.
 
         Same verdict as conflict() gives for a single ref, computed over
@@ -263,7 +355,7 @@ class TagVeto:
         if ri is None:
             return out
 
-        # who gets judged: in the table, not the reference itself, and
+        # who gets judged: in the vocabulary, not the reference itself, and
         # on the same side of the subject/not-subject line -- the guard
         # conflict() applies one pair at a time
         judged = (
@@ -276,14 +368,15 @@ class TagVeto:
             return out
         j = cand_ids[idx]
 
-        # Two sources, as in pair_lift: composition ("starved") tags are
-        # judged over the unfiltered corpus because the solo-post matrix
-        # has almost no rows for them, and either side being one sends
-        # the pair that way. Everything else comes from the stored pairs.
+        # Two sources, as in pair_lift: the solo-corpus lift when both tags
+        # have it, else the unfiltered corpus for a composition ("starved")
+        # tag the solo corpus lacks.
         lift = np.ones(len(idx), dtype=np.float64)  # 1.0 = no veto
         starved_ref = self._starved.get(ref)
         starved_j = self._starved_row[j]
-        unfiltered = (
+        lj, lr = self._lift_id[j], self._lift_id[ri]
+        solo = (lj >= 0) & (lr >= 0) & (lj != lr)
+        unfiltered = ~solo & (
             np.ones(len(idx), dtype=bool) if starved_ref is not None else starved_j >= 0
         )
 
@@ -298,21 +391,25 @@ class TagVeto:
             observed = self._cooc_all[row, other].astype(np.float64)
             expected = self._counts_all[owner] * self._counts_all[other] / self._n_all
             with np.errstate(divide="ignore", invalid="ignore"):
-                # below the E gate the corpus has no sample to judge with
-                lift[sel] = np.where(expected >= E_MIN, observed / expected, 1.0)
+                # below the E gate the pair is vetoed; no count, no verdict
+                lift[sel] = np.where(expected == 0, 1.0, np.where(expected < E_MIN, 0.0, observed / expected))
 
-        rest = np.nonzero(~unfiltered)[0]
+        rest = np.nonzero(solo)[0]
+        rare = np.zeros(len(idx), dtype=bool)
         if len(rest):
-            a = np.minimum(j[rest], ri).astype(np.int64)
-            b = np.maximum(j[rest], ri).astype(np.int64)
-            keys = a * self._n + b
-            pos = np.searchsorted(self._pair_keys, keys)
-            pos = np.minimum(pos, len(self._pair_keys) - 1)
-            hit = self._pair_keys[pos] == keys
-            lift[rest] = np.where(hit, self._pair_lift[pos], 1.0)
+            a, b = np.minimum(lj[rest], lr), np.maximum(lj[rest], lr)
+            lift[rest] = self._lifts(a, b, multi)
+            rare[rest] = self._bit(self._table(multi)[1], a, b)
 
-        out[idx] = lift < lift_th
+        out[idx] = rare | (lift < lift_th)
         return out
+
+    def _subject_banned(self, tag, refs):
+        """Whether the subject tags among refs rule tag out together."""
+        joint, j = self._joint(), self.index.get(tag)
+        if not joint or j is None:
+            return False
+        return bool(joint.mask([self.index[r] for r in refs if r in self.index])[j])
 
     def vocab_ids(self, tags):
         """Map tags onto this table's vocabulary once, -1 where absent."""
@@ -328,10 +425,15 @@ class TagVeto:
     def judge(self, inputs, suggestions, lift_th=DEFAULT_LIFT_TH):
         """Judge (raw, tag) suggestions against (raw, tag) inputs.
 
+        The same three checks TagSuggest applies while sampling, so a
+        tag the generator could not have drawn is one this filter drops:
+        the solo guard (tag_solo) for a one-person input, what the subject
+        tags rule out together (tag_subject), and the pairwise veto.
         Inputs are always kept. A surviving suggestion joins the
         references, so two mutually contradictory suggestions cannot
         both pass; suggestion order (the generator's ranking) decides
-        which one wins. Returns a list of Verdict rows.
+        which one wins. Once the references are crowded, every later
+        suggestion is judged on all posts. Returns a list of Verdict rows.
         """
         rows, seen, refs = [], set(), []
 
@@ -340,19 +442,29 @@ class TagVeto:
                 seen.add(tag)
                 refs.append(tag)
                 rows.append(Verdict(raw, tag, True, "input", None, None))
+        # read off the inputs alone, as the sampler reads it off the prompt
+        alone, female = tag_solo.context(refs)
 
         for raw, tag in suggestions:
             if not tag or tag in seen:
                 continue
             seen.add(tag)
-            ref = self.conflict(tag, refs, lift_th)
+            multi = tag_solo.crowded(refs)
+            needs_two, male = tag_solo.ruled_out(tag)
+            if alone and (needs_two or (female and male)):
+                rows.append(Verdict(raw, tag, False, "suggestion", "(solo guard)", None))
+                continue
+            if self._subject_banned(tag, refs):
+                rows.append(Verdict(raw, tag, False, "suggestion", "(subject tags)", None))
+                continue
+            ref = self.conflict(tag, refs, lift_th, multi)
             if ref is None:
                 refs.append(tag)
                 rows.append(Verdict(raw, tag, True, "suggestion", None, None))
             else:
                 rows.append(
                     Verdict(
-                        raw, tag, False, "suggestion", ref, self.pair_lift(tag, ref)
+                        raw, tag, False, "suggestion", ref, self.pair_lift(tag, ref, multi)
                     )
                 )
         return rows
@@ -396,7 +508,7 @@ def _table_cell(row, veto):
         return (
             row.tag,
             row.ref,
-            "%.3f" % row.lift,
+            "-" if row.lift is None else "%.3f" % row.lift,
             "VETOED",
             veto.bridge_for(row.tag, row.ref) or "-",
         )
@@ -434,7 +546,7 @@ def _format_table(rows, veto, lift_th):
     lines = [fmt(header), "|%s|" % "|".join("-" * (w + 2) for w in widths)]
     lines += [fmt(c) for c in cells]
     lines.append(
-        "(veto: lift < %.2f, E >= %.0f; bridge = the tag naming "
-        "the overlap, informational only)" % (lift_th, E_MIN)
+        "(veto: solo guard, subject tags, then E < %.0f or lift < %.2f; bridge = "
+        "the tag naming the overlap, informational only)" % (E_MIN, lift_th)
     )
     return "\n".join(lines)

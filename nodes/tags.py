@@ -34,7 +34,7 @@ from .lib.tag_guard import (
 )
 from .lib.tag_category import load_labels
 from .lib.tag_characters import load_characters
-from .lib.tag_veto import filter_by_veto, veto_available
+from .lib.tag_veto import filter_by_veto, veto_available, DEFAULT_LIFT_TH
 from .lib.tag_search import search, format_table
 from .lib.tag_suggest import (
     suggest_tags,
@@ -760,19 +760,22 @@ class TagsConflictFilter(BasePrompt):
     """Remove tags contradicting fixed tags (or earlier tags in the text).
 
     Veto layer over a tag generator: which tag is *best* is subjective,
-    which tag is *impossible* is not. A tag is vetoed when its co-occurrence
-    lift (observed / expected on 5.48M Danbooru solo posts) with some
-    reference tag falls below lift_threshold, with expected co-occurrence
-    >= 15 so an observed 0 is evidence, not chance. Composition tags
-    (2girls, yuri, ...) are judged on the unfiltered corpus, and
-    character-count/gender tags are only ever compared with each other.
+    which tag is *impossible* is not. It applies the checks TagsGenerator
+    samples under, so it drops exactly what the generator could not have
+    drawn: a tag needing a second person in a one-person prompt, a tag the
+    subject tags rule out together, and a tag vetoed against a reference
+    tag -- the two expected together fewer than 3 times on 4.8M Danbooru
+    solo posts, or their co-occurrence lift (observed / expected) below
+    lift_threshold. Once the references put two or more characters in the
+    picture (2girls, hug, yuri, ...), pairs are judged on all 8.1M posts
+    instead. Character-count/gender tags are only ever compared with each
+    other.
     Fixed tags are assumed consistent and always kept; surviving generated
     tags immediately become references, so two mutually contradictory
     suggestions cannot both pass.
 
-    lift_threshold is the filter's only tuned parameter (labeled pairs
-    place the contradiction boundary in the 0.098-0.142 gap; raising it
-    past ~0.13 starts vetoing compatible pairs).
+    lift_threshold is the filter's only tuned parameter. The default 0.5
+    vetoes pairs seen together under half as often as chance.
 
     Falls back to static category rules (tag_data.py) when the veto
     artifact (tag_veto.npz) is missing.
@@ -787,7 +790,7 @@ class TagsConflictFilter(BasePrompt):
             "text": ("STRING", {"forceInput": True}),
             "lift_threshold": (
                 "FLOAT",
-                {"default": 0.1, "min": 0.0, "max": 0.5, "step": 0.01},
+                {"default": DEFAULT_LIFT_TH, "min": 0.0, "max": 1.0, "step": 0.01},
             ),
         },
         "optional": {
@@ -805,7 +808,7 @@ class TagsConflictFilter(BasePrompt):
     def execute(
         cls,
         text: str,
-        lift_threshold: float = 0.1,
+        lift_threshold: float = DEFAULT_LIFT_TH,
         fixed_tags: str = "",
     ) -> tuple[str, str]:
         """Remove tags contradicting fixed tags from a prompt."""
@@ -832,7 +835,7 @@ class TagsConflictFilter(BasePrompt):
     def IS_CHANGED(
         cls,
         text: str,
-        lift_threshold: float = 0.1,
+        lift_threshold: float = DEFAULT_LIFT_TH,
         fixed_tags: str = "",
     ) -> tuple:
         return (text, lift_threshold, fixed_tags)
@@ -967,14 +970,11 @@ class TagsGenerator(BasePrompt):
     rerolls the rating along with the tags.
 
     lift_threshold is the veto's only tuned parameter, the same knob
-    TagsConflictFilter exposes and the same default: a candidate is banned
-    when the corpus expected it alongside a reference tag often enough
-    (>= 15 posts) and the pair still came in below this fraction of
-    chance. 0.1 only catches pairs that essentially never co-occur, so
-    raise it when the output keeps contradicting the prompt in ways the
-    data merely discourages -- "no panties" and "lace-trimmed panties"
-    sit at 0.15, six times rarer than chance but past a 0.1 cut. Vetoed
-    candidates are replaced rather than dropped, so n still holds.
+    TagsConflictFilter exposes and the same default: besides the pairs
+    expected together fewer than 3 times, a candidate is banned when the
+    pair came in below this fraction of chance alongside a reference tag. Raise it when the output
+    keeps contradicting the prompt. Vetoed candidates are replaced
+    rather than dropped, so n still holds.
 
     repetition_penalty is the brake on momentum. Because a pick
     re-conditions the next one, the strongest neighbours of "blue skin"
@@ -1135,17 +1135,14 @@ class TagsGenerator(BasePrompt):
             "lift_threshold": (
                 "FLOAT",
                 {
-                    "default": 0.1,
+                    "default": DEFAULT_LIFT_TH,
                     "min": 0.0,
-                    "max": 0.5,
+                    "max": 1.0,
                     "step": 0.01,
-                    "tooltip": "Veto strength. A candidate is banned when the "
-                    "corpus expected it alongside a prompt tag often "
-                    "enough (>= 15 posts) and it still came in below "
-                    "this fraction of chance. Raise it when the "
-                    "output contradicts the prompt in ways the data "
-                    "merely discourages; 0.1 only catches pairs that "
-                    "essentially never co-occur.",
+                    "tooltip": "Veto strength. Besides the pairs expected "
+                    "together fewer than 3 times, a candidate is banned "
+                    "when it came in below this fraction of chance "
+                    "alongside a prompt tag.",
                 },
             ),
             "momentum": (
@@ -1434,7 +1431,7 @@ class TagsGenerator(BasePrompt):
         text: str,
         n: int = 10,
         auto: bool = True,
-        lift_threshold: float = 0.1,
+        lift_threshold: float = DEFAULT_LIFT_TH,
         rating: str = "all",
         temperature: float = 1.3,
         top_k: int = 50,
@@ -1541,7 +1538,7 @@ class TagsGenerator(BasePrompt):
         text: str,
         n: int = 10,
         auto: bool = True,
-        lift_threshold: float = 0.1,
+        lift_threshold: float = DEFAULT_LIFT_TH,
         rating: str = "all",
         temperature: float = 1.3,
         top_k: int = 50,

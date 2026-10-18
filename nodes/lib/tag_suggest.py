@@ -21,7 +21,6 @@ import re
 from . import (
     artifact,
     tag_alias,
-    tag_avoid,
     tag_category,
     tag_copyright,
     tag_solo,
@@ -34,12 +33,6 @@ from .utils import get_logger
 
 DEFAULT_MIN_COUNT = 5000
 _MIN_REPEL_LIFT = 1e-6  # keeps log() finite on stored zeros
-
-# must match build_suggest.py: stored repulsion lift is smoothed as
-# (observed + ALPHA) / (expected + ALPHA), which is invertible given the
-# tag counts, so the raw ratio TagVeto thresholds on can be recovered.
-_SMOOTHING = 5.0
-_MIN_EXPECTED = 15.0
 
 # How much a pick conditions the picks after it, relative to a prompt
 # tag. At 0 every tag answers to the prompt alone and they end up with
@@ -264,7 +257,6 @@ class TagSuggest:
                 "neg_lift": None,
             }
         self._labels = None  # lazy (category, rating) arrays
-        self._avoid = None  # lazy avoidance table
         self._franchise = None  # lazy copyright-signature mask
         self._blacklist = None  # (pattern, mask) of the last regex
         self._slots = None  # lazy (slot ids per tag, count)
@@ -477,44 +469,6 @@ class TagSuggest:
             self._subject = tag_subject.load_subject_joint(self.vocab)
         return self._subject or None
 
-    def _avoidance(self):
-        """Lazy handle on the avoidance table, or None when absent."""
-        if self._avoid is None:
-            self._avoid = tag_avoid.load_avoidance(self.vocab)
-        return self._avoid or None
-
-    def _repel_veto(self, ids, tier, lift_th, avoid_alpha):
-        """Tags that avoid the given context strongly enough to ban.
-
-        TagVeto only knows 8,320 of the 20,811 tags, so on its own it
-        leaves most of the vocabulary unchecked. The repulsion table
-        covers all of it: undo the smoothing to recover the raw
-        observed/expected ratio and apply the same rule TagVeto does --
-        ban when the corpus expected the pair often (>= 15) and it still
-        barely happened.
-        """
-        np = self._np
-        banned = np.zeros(len(self.vocab), dtype=bool)
-        if tier["neg_ids"] is None or not tier["posts"]:
-            return banned
-        counts = tier["counts"].astype(np.float64)
-        for i in ids:
-            neighbours = tier["neg_ids"][i]
-            real = neighbours >= 0
-            j = neighbours[real]
-            if not len(j):
-                continue
-            smoothed = tier["neg_lift"][i][real].astype(np.float64)
-            expected = counts[i] * counts[j] / tier["posts"]
-            observed = smoothed * (expected + _SMOOTHING) - _SMOOTHING
-            with np.errstate(divide="ignore", invalid="ignore"):
-                raw = np.where(expected > 0, observed / expected, 1.0)
-            banned[j[(expected >= _MIN_EXPECTED) & (raw < lift_th)]] = True
-        avoid = self._avoidance()
-        if avoid is not None:
-            banned |= avoid.mask(ids, avoid_alpha)
-        return banned
-
     def _copyright_mask(self):
         """Signature-tag mask, or None when the table is absent."""
         if self._franchise is None:
@@ -593,7 +547,6 @@ class TagSuggest:
         categories="",
         blacklist="",
         quota_total=None,
-        avoid_alpha=tag_avoid.DEFAULT_ALPHA,
         momentum=DEFAULT_MOMENTUM,
         repetition_penalty=DEFAULT_REPETITION_PENALTY,
         filter_copyright=True,
@@ -704,15 +657,14 @@ class TagSuggest:
             gain, _ = self._log_lift_sum([j], tier)
             log_lift -= strength * gain
 
-        # One mask for everything a candidate can be ruled out by, since
-        # the loop only ever asks whether it is ruled out: tags already
-        # in the prompt, tags the corpus shows the context avoiding,
-        # tags the subject tags rule out together, tags TagVeto judges
-        # against a reference. All four only ever grow.
+        # One mask for everything a candidate can be ruled out by besides
+        # TagVeto, since the loop only ever asks whether it is ruled out:
+        # tags already in the prompt and tags the subject tags rule out
+        # together. Both only ever grow.
         # a seeded anchor is already part of the answer, so it takes a
         # slot of m rather than arriving on top of it
         chosen, refs = list(seeded), [t for t, w in zip(tags, weights) if t and w > 0]
-        banned = self._repel_veto(ids, tier, lift_th, avoid_alpha)
+        banned = np.zeros(len(self.vocab), dtype=bool)
         for t in refs:
             if t in self.index:
                 banned[self.index[t]] = True
@@ -744,8 +696,14 @@ class TagSuggest:
         # candidate cleared against refs[:k] never has to be re-judged
         # against them. refs_judged is how far the vocabulary has been
         # weighed; each step pays for the new reference only.
+        # Vetoes are kept apart from the other bans: the moment the
+        # references turn crowded (a second character, see tag_solo) the
+        # veto switches to all-posts statistics, and what solo posts ruled
+        # out is judged again from scratch.
         refs_judged = 0
         veto_ids = self._veto_vocab_ids(veto) if veto else None
+        vetoed = np.zeros(len(self.vocab), dtype=bool)
+        multi = False
 
         # Repetition penalty, in log space: dividing the odds by
         # repetition_penalty per repeat is subtracting its log per
@@ -763,14 +721,17 @@ class TagSuggest:
 
         for _ in range(max(0, m - len(chosen))):
             if veto:
+                if not multi and tag_solo.crowded(refs):
+                    multi, refs_judged = True, 0
+                    vetoed[:] = False
                 # one vectorised pass per new reference beats a Python
                 # call per candidate by ~40x, so the whole vocabulary is
                 # judged at once rather than only the live candidates
                 while refs_judged < len(refs):
-                    banned |= veto.conflict_mask(veto_ids, refs[refs_judged], lift_th)
+                    vetoed |= veto.conflict_mask(veto_ids, refs[refs_judged], lift_th, multi)
                     refs_judged += 1
             # candidates: some attraction, allowed, not ruled out
-            ok = (log_lift > 0) & eligible & ~banned
+            ok = (log_lift > 0) & eligible & ~banned & ~vetoed
             if quota and cat_of is not None:
                 spent = [
                     r for r, (key, cap) in quota.items() if used.get(key, 0) >= cap
@@ -804,7 +765,6 @@ class TagSuggest:
             gain, loss = self._log_lift_sum([j], tier)  # re-condition
             log_lift += momentum * gain
             log_repel += momentum * loss
-            banned |= self._repel_veto([j], tier, lift_th, avoid_alpha)
             if joint is not None and j in joint.subject_ids:
                 subject_ids.append(j)
                 banned |= joint.mask(subject_ids)
@@ -867,7 +827,6 @@ def suggest_tags(
     blacklist="",
     lift_th=DEFAULT_LIFT_TH,
     quota_total=None,
-    avoid_alpha=tag_avoid.DEFAULT_ALPHA,
     momentum=DEFAULT_MOMENTUM,
     repetition_penalty=DEFAULT_REPETITION_PENALTY,
     filter_copyright=True,
@@ -889,7 +848,6 @@ def suggest_tags(
         categories=categories,
         blacklist=blacklist,
         quota_total=quota_total,
-        avoid_alpha=avoid_alpha,
         momentum=momentum,
         repetition_penalty=repetition_penalty,
         filter_copyright=filter_copyright,

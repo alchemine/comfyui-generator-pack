@@ -73,10 +73,12 @@ _NOT_FEMALE_ONLY = frozenset(
     }
 )
 
-# Subject tags that put more than one character in the picture whatever
-# the counts say, so a prompt carrying one is never "alone".
+# Tags that put more than one figure in the picture whatever the counts
+# say, so a prompt carrying one is never "alone". "multiple views" draws
+# the one character several times, and Danbooru rarely tags it solo.
 _CROWD = frozenset(
     {
+        "multiple views",
         "solo focus",
         "multiple girls",
         "multiple boys",
@@ -112,12 +114,13 @@ def context(tags):
     """(one person only, that person is a girl) for a prompt.
 
     "solo" is the direct statement and outranks the counts, which is
-    what lets "1girl, solo" and a bare "1girl" both qualify. "solo
-    focus" is the opposite claim -- one subject among others -- so it
-    disqualifies however the counts read.
+    what lets "1girl, solo" and a bare "1girl" both qualify. A crowded
+    prompt (see crowded) disqualifies however the counts read: "solo
+    focus" claims one subject among others, and "1girl, yuri" already
+    names a second person.
     """
     tags = {t.replace("_", " ").strip().lower() for t in tags if t}
-    if tags & _CROWD:
+    if crowded(tags):
         return False, False
     counted = [m for m in map(_COUNT_RE.match, tags) if m]
     if "solo" not in tags and sum(int(m.group(1)) for m in counted) != 1:
@@ -130,6 +133,19 @@ def context(tags):
     return True, female
 
 
+def crowded(tags):
+    """Whether a prompt puts more than one character in the picture: subject
+    counts adding up past one, a crowd subject tag, or a tag that needs a
+    second person ([multi_person], or spelled with "another")."""
+    tags = {t.replace("_", " ").strip().lower() for t in tags if t}
+    if tags & _CROWD:
+        return True
+    if sum(int(m.group(1)) for m in map(_COUNT_RE.match, tags) if m) > 1:
+        return True
+    multi = (_sections() or {}).get("multi_person", frozenset())
+    return any(_ANOTHER in t or t in multi for t in tags)
+
+
 def masks(vocab):
     """(multi-person veto, male-anatomy veto) as arrays over `vocab`.
 
@@ -140,11 +156,14 @@ def masks(vocab):
     """
     import numpy as np
 
+    rows = [ruled_out(t) for t in vocab]
+    return np.array([m for m, _ in rows]), np.array([f for _, f in rows])
+
+
+def ruled_out(tag):
+    """(needs a second person, is male anatomy) for one tag: what the two
+    vetoes ask of it, for a caller judging tags one at a time."""
     sections = _sections() or {}
-    multi = sections.get("multi_person", frozenset())
-    male = sections.get("male_anatomy", frozenset())
-    spelled = [t.replace("_", " ") for t in vocab]
-    return (
-        np.array([_ANOTHER in t or t in multi for t in spelled]),
-        np.array([t in male for t in spelled]),
-    )
+    tag = tag.replace("_", " ")
+    multi = _ANOTHER in tag or tag in sections.get("multi_person", frozenset())
+    return multi, tag in sections.get("male_anatomy", frozenset())
