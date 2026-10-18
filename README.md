@@ -34,7 +34,7 @@ Feed a prompt into **Tags Generator**, read the extended prompt out of `text`, o
 | `rating` | The explicitness is off. `all` draws a tier from the seed, so a new seed rerolls it |
 | `momentum` | The tags have nothing to do with each other (raise), or read as one runaway scene (lower) |
 | `repetition_penalty` | Half the draw goes on respelling one idea: `blue skin`, `pale skin`, `dark skin` |
-| `lift_threshold` | The output contradicts the prompt in ways the data merely discourages. `0.1` catches only pairs that essentially never co-occur |
+| `lift_threshold` | The output contradicts the prompt in ways the data merely discourages. The default `0.5` blocks pairs seen together under half as often as chance; pairs expected together fewer than 3 times are blocked at any value. Once the prompt has two or more characters (`2girls`, `hug`, `yuri`), pairs are judged on all posts instead of solo ones |
 | `blacklist` | A regex over the candidates (`hair\|eyes`, `^black `). `<color>` expands from `resources/wildcards.yaml`. Filters candidates, so `n` still holds |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | The usual sampling knobs. `temperature 0` is argmax |
 | `filter_copyright` | On by default: drops candidates owned by one character or franchise: the tags that turn a library into Patchouli's library. `resources/copyright_blacklist.txt` adds the ones the statistics miss, and is meant to be edited. Your own tags are never dropped |
