@@ -13,7 +13,16 @@ SHEET = (
     "comic expression, variations, (wince:1.1), (>:\\(:1.1), (excited:1.1), "
     "(bored:1.1), (trembling:1.1), (notice lines:1.1), breasts"
 )
-WIDGETS = ("subject", "body", "expressions", "pose", "clothes", "background", "bg_details", "framing")
+WIDGETS = (
+    "subject",
+    "body",
+    "expressions",
+    "pose",
+    "clothes",
+    "background",
+    "bg_details",
+    "framing",
+)
 
 
 @pytest.fixture(scope="session")
@@ -32,7 +41,9 @@ def pack():
 @pytest.fixture(scope="session")
 def generate(pack):
     def run(text, seed, n=15, **toggles):
-        out, _ = pack.NODE_CLASS_MAPPINGS["TagsGenerator"].execute(text=text, n=n, seed=seed, **toggles)
+        out, _ = pack.NODE_CLASS_MAPPINGS["TagsGenerator"].execute(
+            text=text, n=n, seed=seed, **toggles
+        )
         given = {t.strip() for t in text.split(",")}
         return [t for t in out.split(", ") if t and t not in given]
 
@@ -43,7 +54,9 @@ def generate(pack):
 def conflict_filter(pack):
     def run(fixed, generated):
         text = ", ".join(t for t in (fixed, generated) if t)
-        out, _ = pack.NODE_CLASS_MAPPINGS["TagsConflictFilter"].execute(text=text, fixed_tags=fixed)
+        out, _ = pack.NODE_CLASS_MAPPINGS["TagsConflictFilter"].execute(
+            text=text, fixed_tags=fixed
+        )
         return [t for t in out.split(", ") if t]
 
     return run

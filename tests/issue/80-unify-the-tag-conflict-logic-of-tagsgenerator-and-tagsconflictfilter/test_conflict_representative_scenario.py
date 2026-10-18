@@ -44,4 +44,8 @@ def test_filter_drops_what_two_subject_tags_rule_out(conflict_filter):
 
 
 def test_filter_drops_pout_after_laughing(conflict_filter):
-    assert conflict_filter("1girl, solo", "laughing, pout") == ["1girl", "solo", "laughing"]
+    assert conflict_filter("1girl, solo", "laughing, pout") == [
+        "1girl",
+        "solo",
+        "laughing",
+    ]

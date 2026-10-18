@@ -24,7 +24,12 @@ def solo(pack):
         ("kiss", ["yuri"], False, "yuri"),  # solo posts: yuri 28 times, E < 3
         ("kiss", ["yuri"], True, None),  # all posts: lift 17.5
         ("red_hair", ["blonde_hair"], True, None),  # two girls, two hair colours
-        ("outdoors", ["multiple_views"], True, "multiple_views"),  # lift 0.28 on all posts
+        (
+            "outdoors",
+            ["multiple_views"],
+            True,
+            "multiple_views",
+        ),  # lift 0.28 on all posts
         ("swimsuit", ["bikini"], False, None),
     ],
 )

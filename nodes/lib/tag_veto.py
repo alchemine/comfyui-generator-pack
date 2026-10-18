@@ -175,7 +175,9 @@ class TagVeto:
     """Judge suggestions against reference tags using tag_lift_v1.npz and,
     for composition tags, tag_veto.npz."""
 
-    def __init__(self, path=_VETO_PATH, lift_path=_LIFT_PATH, lift_all_path=_LIFT_ALL_PATH):
+    def __init__(
+        self, path=_VETO_PATH, lift_path=_LIFT_PATH, lift_all_path=_LIFT_ALL_PATH
+    ):
         import numpy as np
 
         self._np = np
@@ -229,8 +231,12 @@ class TagVeto:
         # them so the unfiltered path leaves their pairs alone
         extra = n_all - self._n
         cooc = data["starved_cooc"]
-        self._cooc_all = np.hstack([cooc, np.zeros((len(cooc), extra), dtype=cooc.dtype)])
-        self._counts_all = np.append(data["counts_all"].astype(np.float64), np.zeros(extra))
+        self._cooc_all = np.hstack(
+            [cooc, np.zeros((len(cooc), extra), dtype=cooc.dtype)]
+        )
+        self._counts_all = np.append(
+            data["counts_all"].astype(np.float64), np.zeros(extra)
+        )
         self._n_all = float(data["n_all"])
 
         # bridge pairs (blue_eyes + red_eyes -> heterochromia): the
@@ -246,13 +252,24 @@ class TagVeto:
         np = self._np
         assert len(lifts["tags"]) == self._n_lift
         keys = lifts["pair_a"].astype(np.int64) * self._n_lift + lifts["pair_b"]
-        return lifts["bits"], lifts["rare"], keys, (lifts["pair_lift"].astype(np.float32) + 0.5) / 256
+        return (
+            lifts["bits"],
+            lifts["rare"],
+            keys,
+            (lifts["pair_lift"].astype(np.float32) + 0.5) / 256,
+        )
 
     def _table(self, multi):
         """The solo table, or (multi) the all-posts one, loaded on first use."""
         if multi not in self._tables:
             if self._lift_all_path == _LIFT_ALL_PATH:
-                artifact.ensure(self._lift_all_path, _LIFT_ALL_URL, _LIFT_ALL_SHA256, "TagVeto", "59MB")
+                artifact.ensure(
+                    self._lift_all_path,
+                    _LIFT_ALL_URL,
+                    _LIFT_ALL_SHA256,
+                    "TagVeto",
+                    "59MB",
+                )
             self._tables[multi] = self._read_lifts(self._np.load(self._lift_all_path))
         return self._tables[multi]
 
@@ -392,7 +409,11 @@ class TagVeto:
             expected = self._counts_all[owner] * self._counts_all[other] / self._n_all
             with np.errstate(divide="ignore", invalid="ignore"):
                 # below the E gate the pair is vetoed; no count, no verdict
-                lift[sel] = np.where(expected == 0, 1.0, np.where(expected < E_MIN, 0.0, observed / expected))
+                lift[sel] = np.where(
+                    expected == 0,
+                    1.0,
+                    np.where(expected < E_MIN, 0.0, observed / expected),
+                )
 
         rest = np.nonzero(solo)[0]
         rare = np.zeros(len(idx), dtype=bool)
@@ -452,10 +473,14 @@ class TagVeto:
             multi = tag_solo.crowded(refs)
             needs_two, male = tag_solo.ruled_out(tag)
             if alone and (needs_two or (female and male)):
-                rows.append(Verdict(raw, tag, False, "suggestion", "(solo guard)", None))
+                rows.append(
+                    Verdict(raw, tag, False, "suggestion", "(solo guard)", None)
+                )
                 continue
             if self._subject_banned(tag, refs):
-                rows.append(Verdict(raw, tag, False, "suggestion", "(subject tags)", None))
+                rows.append(
+                    Verdict(raw, tag, False, "suggestion", "(subject tags)", None)
+                )
                 continue
             ref = self.conflict(tag, refs, lift_th, multi)
             if ref is None:
@@ -464,7 +489,12 @@ class TagVeto:
             else:
                 rows.append(
                     Verdict(
-                        raw, tag, False, "suggestion", ref, self.pair_lift(tag, ref, multi)
+                        raw,
+                        tag,
+                        False,
+                        "suggestion",
+                        ref,
+                        self.pair_lift(tag, ref, multi),
                     )
                 )
         return rows

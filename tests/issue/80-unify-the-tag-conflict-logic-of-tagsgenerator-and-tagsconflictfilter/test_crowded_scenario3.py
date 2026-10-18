@@ -21,7 +21,12 @@
 
 
 def test_filter_keeps_kiss_and_hug_beside_yuri(conflict_filter):
-    assert conflict_filter("1girl, yuri", "kiss, hug") == ["1girl", "yuri", "kiss", "hug"]
+    assert conflict_filter("1girl, yuri", "kiss, hug") == [
+        "1girl",
+        "yuri",
+        "kiss",
+        "hug",
+    ]
 
 
 def test_character_sheet_draws_background(generate, sheet, background_only):
@@ -29,4 +34,8 @@ def test_character_sheet_draws_background(generate, sheet, background_only):
 
 
 def test_filter_keeps_two_hair_colours_for_two_girls(conflict_filter):
-    assert conflict_filter("2girls", "blonde hair, red hair") == ["2girls", "blonde hair", "red hair"]
+    assert conflict_filter("2girls", "blonde hair, red hair") == [
+        "2girls",
+        "blonde hair",
+        "red hair",
+    ]

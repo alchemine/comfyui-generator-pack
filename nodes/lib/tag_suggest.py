@@ -728,7 +728,9 @@ class TagSuggest:
                 # call per candidate by ~40x, so the whole vocabulary is
                 # judged at once rather than only the live candidates
                 while refs_judged < len(refs):
-                    vetoed |= veto.conflict_mask(veto_ids, refs[refs_judged], lift_th, multi)
+                    vetoed |= veto.conflict_mask(
+                        veto_ids, refs[refs_judged], lift_th, multi
+                    )
                     refs_judged += 1
             # candidates: some attraction, allowed, not ruled out
             ok = (log_lift > 0) & eligible & ~banned & ~vetoed
