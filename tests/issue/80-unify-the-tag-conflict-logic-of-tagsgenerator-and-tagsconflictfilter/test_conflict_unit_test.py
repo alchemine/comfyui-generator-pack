@@ -21,7 +21,7 @@ def solo(pack):
         ("night", ["day"], False, "day"),  # lift far under 0.5
         ("long_hair", ["short_hair"], False, "short_hair"),
         ("smile", ["1girl"], False, None),  # subject tags never judge ordinary ones
-        ("kiss", ["yuri"], False, "yuri"),  # solo posts: yuri 28 times, E < 3
+        ("kiss", ["yuri"], False, None),  # solo posts: lift 1 or more
         ("kiss", ["yuri"], True, None),  # all posts: lift 17.5
         ("red_hair", ["blonde_hair"], True, None),  # two girls, two hair colours
         (
@@ -56,4 +56,4 @@ def test_crowded(solo, tags, crowded):
 
 def test_defaults(veto):
     mod = sys.modules["comfyui_generator_pack.nodes.lib.tag_veto"]
-    assert (mod.E_MIN, mod.DEFAULT_LIFT_TH) == (3.0, 0.5)
+    assert mod.DEFAULT_LIFT_TH == 0.5

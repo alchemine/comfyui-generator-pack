@@ -1,6 +1,6 @@
 """TagVeto: drop suggested tags that contradict the reference tags.
 
-Runtime port of experiments/logic-v2.0.0.
+Runtime port of experiments/logic-v2.2.0.
 Lift comes from tag_lift_v1.npz (4.8M Danbooru solo posts, 21,378
 general tags); composition tags still use tag_veto.npz. Once the
 reference tags put more than one figure in the picture (2girls, hug,
@@ -14,11 +14,9 @@ are mutually exclusive in practice, which shows up as
 lift = observed / expected co-occurrence far below 1.
 
 Judgment rules:
-  - veto when the pair is expected together fewer than 3 times (E < 3):
-    below that, never seeing the two together is not evidence either way
-    (e^-E >= 0.05), and unseen-but-rare pairs are mostly conflicts.
-  - otherwise veto when lift < lift_th. The default 0.5 vetoes pairs seen
-    together under half as often as chance.
+  - veto when lift < lift_th. The default 0.5 vetoes pairs seen together
+    under half as often as chance; a pair never seen together has lift 0
+    and is vetoed at any threshold.
   - composition tags (2girls, yuri, ...) the solo corpus lacks are judged
     on the unfiltered corpus.
   - character-count/gender tags are only compared with each other
@@ -41,7 +39,6 @@ except ImportError:  # flat import (playground scripts put nodes/lib on sys.path
     import tag_solo
     import tag_subject
 
-E_MIN = 3.0
 DEFAULT_LIFT_TH = 0.5
 
 _VETO_PATH = artifact.resource("tag_veto.npz")
@@ -205,8 +202,7 @@ class TagVeto:
 
         # lift tables, numbered by their own tags (the same list for both
         # corpora): one bit per pair (i < j, packed upper triangle) for
-        # "expected together fewer than E_MIN times" and one for "never
-        # together", and the pairs with 0 < lift < 1 as a sorted array of
+        # "never together", and the pairs with 0 < lift < 1 as a sorted array of
         # i*n+j keys for binary-search lookup (a dict would cost ~10x the
         # memory for 8.4M pairs); lift is stored in 1/256 steps, read at
         # the middle. The all-posts table loads on the first crowded prompt.
@@ -248,13 +244,12 @@ class TagVeto:
         }
 
     def _read_lifts(self, lifts):
-        """(never bits, rare bits, pair keys, pair lifts) of one lift table."""
+        """(never bits, pair keys, pair lifts) of one lift table."""
         np = self._np
         assert len(lifts["tags"]) == self._n_lift
         keys = lifts["pair_a"].astype(np.int64) * self._n_lift + lifts["pair_b"]
         return (
             lifts["bits"],
-            lifts["rare"],
             keys,
             (lifts["pair_lift"].astype(np.float32) + 0.5) / 256,
         )
@@ -289,17 +284,6 @@ class TagVeto:
             return self._lift_unfiltered(a, b)
         return None
 
-    def pair_rare(self, a, b, multi=False):
-        """Whether both tags are in the lift table and the pair is expected
-        together fewer than E_MIN times."""
-        if a not in self.index or b not in self.index:
-            return False
-        i, j = sorted((self._lift_id[self.index[a]], self._lift_id[self.index[b]]))
-        if i < 0 or i == j:
-            return False
-        rare = self._table(multi)[1]
-        return bool(self._bit(rare, self._np.array([i]), self._np.array([j]))[0])
-
     def _lift_stored(self, a, b, multi):
         """Lift-table lift below 1, or None (1 or more, or a tag the lift
         table lacks)."""
@@ -318,7 +302,7 @@ class TagVeto:
     def _lifts(self, i, j, multi):
         """Lift for lift-table ids i < j (arrays), 1.0 where it is 1 or more."""
         np = self._np
-        bits, _rare, pair_keys, pair_lift = self._table(multi)
+        bits, pair_keys, pair_lift = self._table(multi)
         never = self._bit(bits, i, j)
         keys = i * self._n_lift + j
         pos = np.minimum(np.searchsorted(pair_keys, keys), len(pair_keys) - 1)
@@ -326,16 +310,14 @@ class TagVeto:
         return np.where(never, 0.0, np.where(hit, pair_lift[pos], 1.0))
 
     def _lift_unfiltered(self, a, b):
-        """Lift over all posts, for pairs involving a composition tag; 0
-        below the E gate, None when either tag has no unfiltered count."""
+        """Lift over all posts, for pairs involving a composition tag; None
+        when either tag has no unfiltered count."""
         if a not in self._starved:
             a, b = b, a
         row, j = self._starved[a], self.index[b]
         expected = self._counts_all[self.index[a]] * self._counts_all[j] / self._n_all
         if not expected:
             return None
-        if expected < E_MIN:
-            return 0.0
         return float(self._cooc_all[row, j]) / expected
 
     def conflict(self, cand, refs, lift_th=DEFAULT_LIFT_TH, multi=False):
@@ -345,8 +327,6 @@ class TagVeto:
         for ref in refs:
             if ref == cand or is_subject(ref) != cand_subject:
                 continue
-            if self.pair_rare(cand, ref, multi):
-                return ref
             lift = self.pair_lift(cand, ref, multi)
             if lift is not None and lift < lift_th:
                 return ref
@@ -408,21 +388,15 @@ class TagVeto:
             observed = self._cooc_all[row, other].astype(np.float64)
             expected = self._counts_all[owner] * self._counts_all[other] / self._n_all
             with np.errstate(divide="ignore", invalid="ignore"):
-                # below the E gate the pair is vetoed; no count, no verdict
-                lift[sel] = np.where(
-                    expected == 0,
-                    1.0,
-                    np.where(expected < E_MIN, 0.0, observed / expected),
-                )
+                # no count, no verdict
+                lift[sel] = np.where(expected == 0, 1.0, observed / expected)
 
         rest = np.nonzero(solo)[0]
-        rare = np.zeros(len(idx), dtype=bool)
         if len(rest):
             a, b = np.minimum(lj[rest], lr), np.maximum(lj[rest], lr)
             lift[rest] = self._lifts(a, b, multi)
-            rare[rest] = self._bit(self._table(multi)[1], a, b)
 
-        out[idx] = rare | (lift < lift_th)
+        out[idx] = lift < lift_th
         return out
 
     def _subject_banned(self, tag, refs):
@@ -576,7 +550,7 @@ def _format_table(rows, veto, lift_th):
     lines = [fmt(header), "|%s|" % "|".join("-" * (w + 2) for w in widths)]
     lines += [fmt(c) for c in cells]
     lines.append(
-        "(veto: solo guard, subject tags, then E < %.0f or lift < %.2f; bridge = "
-        "the tag naming the overlap, informational only)" % (E_MIN, lift_th)
+        "(veto: solo guard, subject tags, then lift < %.2f; bridge = "
+        "the tag naming the overlap, informational only)" % lift_th
     )
     return "\n".join(lines)

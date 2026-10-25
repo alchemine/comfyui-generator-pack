@@ -33,7 +33,7 @@
 | `rating` | 수위가 안 맞을 때. `all`은 시드에서 등급을 뽑아 시드마다 다시 굴러갑니다 |
 | `momentum` | 태그들이 서로 무관해 보일 때(올리기), 한 장면이 제멋대로 굴러갈 때(내리기) |
 | `repetition_penalty` | 같은 얘기 바꿔 쓰기에 예산이 절반 나갈 때. 예: `blue skin`, `pale skin`, `dark skin` |
-| `lift_threshold` | 데이터가 "드물게 한다" 정도인 조합까지 막고 싶을 때. 기본값 `0.5`는 우연의 절반보다 덜 함께 나오는 쌍을 막습니다. 함께 나올 기대값이 3 미만인 쌍은 값과 상관없이 막힙니다. 프롬프트에 캐릭터가 둘 이상 있으면(`2girls`, `hug`, `yuri`) solo 게시물 대신 전체 게시물로 판정합니다 |
+| `lift_threshold` | 데이터가 "드물게 한다" 정도인 조합까지 막고 싶을 때. 기본값 `0.5`는 우연의 절반보다 덜 함께 나오는 쌍을 막고, 한 번도 함께 나오지 않은 쌍도 여기에 들어갑니다. 프롬프트에 캐릭터가 둘 이상 있으면(`2girls`, `hug`, `yuri`) solo 게시물 대신 전체 게시물로 판정합니다 |
 | `blacklist` | 후보 태그에 걸리는 정규식(`hair\|eyes`, `^black `). `<color>`는 `resources/wildcards.yaml`에서 펼쳐집니다. 결과가 아니라 후보를 걸러 `n`은 그대로 채워집니다 |
 | `temperature` / `top_k` / `top_p` / `min_p` / `seed` | 익숙한 샘플링 손잡이. `temperature 0`은 argmax |
 | `filter_copyright` | 기본 켜짐: 특정 캐릭터·작품 전유 태그를 후보에서 제외합니다. 도서관을 파츄리의 도서관으로 만드는 그 태그들입니다. 통계가 놓치는 건 `resources/copyright_blacklist.txt`에 직접 적으면 되고, 고쳐 쓰라고 있는 파일입니다. 직접 입력한 태그는 건드리지 않습니다 |
