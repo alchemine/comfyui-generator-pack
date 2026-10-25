@@ -33,8 +33,7 @@ _PATH = artifact.resource("copyright_v1.npz")
 _URL = artifact.url_for("data-v2.1.0", "copyright_v1.npz")
 _SHA256 = "f3e568e9ad88b490e1e3c22263c398f6521a5ebf117e2d0821cc2948f7a7fe5c"
 
-# A tag is a signature only when both halves of the evidence agree,
-# the same both-or-neither structure as the veto's E_MIN gate: the
+# A tag is a signature only when both halves of the evidence agree: the
 # share says the owner dominates the tag, the lift says that is not
 # just the owner dominating the corpus. Share alone ate geta and
 # no headwear (0.60/0.66 touhou -- volume, x6 lift); lift alone cannot

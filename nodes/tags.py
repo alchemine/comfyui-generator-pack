@@ -764,9 +764,8 @@ class TagsConflictFilter(BasePrompt):
     samples under, so it drops exactly what the generator could not have
     drawn: a tag needing a second person in a one-person prompt, a tag the
     subject tags rule out together, and a tag vetoed against a reference
-    tag -- the two expected together fewer than 3 times on 4.8M Danbooru
-    solo posts, or their co-occurrence lift (observed / expected) below
-    lift_threshold. Once the references put two or more characters in the
+    tag -- their co-occurrence lift (observed / expected) on 4.8M Danbooru
+    solo posts below lift_threshold. Once the references put two or more characters in the
     picture (2girls, hug, yuri, ...), pairs are judged on all 8.1M posts
     instead. Character-count/gender tags are only ever compared with each
     other.
@@ -970,10 +969,9 @@ class TagsGenerator(BasePrompt):
     rerolls the rating along with the tags.
 
     lift_threshold is the veto's only tuned parameter, the same knob
-    TagsConflictFilter exposes and the same default: besides the pairs
-    expected together fewer than 3 times, a candidate is banned when the
-    pair came in below this fraction of chance alongside a reference tag. Raise it when the output
-    keeps contradicting the prompt. Vetoed candidates are replaced
+    TagsConflictFilter exposes and the same default: a candidate is banned
+    when the pair came in below this fraction of chance alongside a
+    reference tag. Raise it when the output keeps contradicting the prompt. Vetoed candidates are replaced
     rather than dropped, so n still holds.
 
     repetition_penalty is the brake on momentum. Because a pick
@@ -1139,10 +1137,9 @@ class TagsGenerator(BasePrompt):
                     "min": 0.0,
                     "max": 1.0,
                     "step": 0.01,
-                    "tooltip": "Veto strength. Besides the pairs expected "
-                    "together fewer than 3 times, a candidate is banned "
-                    "when it came in below this fraction of chance "
-                    "alongside a prompt tag.",
+                    "tooltip": "Veto strength. A candidate is banned when it "
+                    "came in below this fraction of chance alongside a "
+                    "prompt tag.",
                 },
             ),
             "momentum": (
