@@ -28,7 +28,7 @@ lift_th is the only tuned parameter.
 """
 
 import re
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 from functools import lru_cache
 
 try:
@@ -214,6 +214,10 @@ class TagVeto:
         # sampler maps its own copy onto its own), loaded on first use
         self._joint = artifact.lazy(lambda: tag_subject.SubjectJoint(self.vocab))
         self._tables = {False: self._read_lifts(lifts)}
+        # conflict masks over the whole vocabulary, (ref, multi, lift_th)
+        # -> bool array; the sampler asks the same prompt tags every round,
+        # execution and generator
+        self._masks = OrderedDict()
 
         # composition tags: co-occurrence rows over the unfiltered corpus
         self._starved = {str(t): row for row, t in enumerate(data["starved"])}
@@ -332,6 +336,8 @@ class TagVeto:
                 return ref
         return None
 
+    _MASK_CACHE = 2048  # 21 KB each: the prompt tags of a session, not a corpus
+
     def conflict_mask(self, cand_ids, ref, lift_th=DEFAULT_LIFT_TH, multi=False):
         """Which of `cand_ids` contradict one reference tag.
 
@@ -345,8 +351,28 @@ class TagVeto:
         tags it does not know (never a conflict, since pair_lift returns
         None for them and None means no veto). Returns a bool array of
         the same length.
+
+        The verdict for a ref over the whole vocabulary is kept, since
+        the prompt tags come back as refs every round, every execution
+        and in every generator of a chain: a lookup of the pair table
+        costs about as much as the rest of a sampling step.
         """
         np = self._np
+        key = (ref, multi, lift_th)
+        mask = self._masks.get(key)
+        if mask is None:
+            mask = self._conflict_mask_all(ref, lift_th, multi)
+            self._masks[key] = mask
+            if len(self._masks) > self._MASK_CACHE:
+                self._masks.popitem(last=False)
+        else:
+            self._masks.move_to_end(key)
+        return np.where(cand_ids >= 0, mask[np.maximum(cand_ids, 0)], False)
+
+    def _conflict_mask_all(self, ref, lift_th, multi):
+        """conflict_mask over every id of this table's vocabulary."""
+        np = self._np
+        cand_ids = np.arange(len(self.vocab))
         out = np.zeros(len(cand_ids), dtype=bool)
         ri = self.index.get(ref)
         if ri is None:
