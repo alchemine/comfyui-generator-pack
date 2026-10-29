@@ -11,7 +11,7 @@ import re
 import random
 import textwrap
 from collections import Counter, defaultdict
-from functools import wraps
+from functools import lru_cache, wraps
 
 import yaml
 
@@ -178,6 +178,7 @@ def _categories_spec(counts):
 _WILDCARD_FORMS = ("<{key}>", "__{key}__")
 
 
+@lru_cache(maxsize=32)
 def blacklist_pattern(blacklist_tags: str) -> str:
     """Comma-separated blacklist -> one regex, or "" when it is empty.
 
@@ -185,6 +186,12 @@ def blacklist_pattern(blacklist_tags: str) -> str:
     they are joined with | rather than matched as one string. A token
     that will not compile is reported and matched literally instead, so
     one typo cannot silence the whole blacklist.
+
+    Cached on the blacklist string: a workflow hands the same few hundred
+    tokens to every generator and filter of every prompt, and reading
+    wildcards.yaml plus compiling each token took more time than the
+    generation itself. The yaml is a bundled resource, fixed for the
+    process.
     """
     if not blacklist_tags or not blacklist_tags.strip():
         return ""
