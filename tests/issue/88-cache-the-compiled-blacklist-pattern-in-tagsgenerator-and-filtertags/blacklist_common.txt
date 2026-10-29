@@ -1,0 +1,540 @@
+^solo$
+solo focus
+say
+no human
+close-up
+censor
+evolutionary line
+monochrome
+greyscale
+artist
+copyright
+company name
+username
+watermark
+web address
+blurry
+light particles
+mood
+atmosphere
+illustration
+signature
+outline
+depth of field
+sketch
+chart
+collage
+perspective
+straight-on
+tachi-e
+dynamic pose
+posing
+3d
+shiny and normal
+narration
+cosplay
+gloriana
+challenge
+pixel
+yukkuri
+text
+jaggy lines
+scenery
+out of frame
+lower body
+portrait
+vanishing point
+alternate
+chromatic
+abuse
+realistic
+photorealistic
+extra
+reference sheet
+meme
+parody
+crossover
+upper body
+full body
+lineart
+background
+dated
+commentary
+content rating
+comiket
+doujin cover
+circle name
+nail polish
+border
+logo
+cropped legs
+looking at viewer
+muted color
+oekaki
+tegaki
+detailed
+aesthetic
+high contrast
+anime
+multiple views
+20
+shade
+limited palette
+spot color
+pince-nez
+fake cover
+flat color
+comic
+koma
+frame
+instant loss
+color guide
+glasses
+eyewear
+ear covers
+latex
+^nose$
+horns
+third eye
+(shiny|dark|colored|<color>) skin
+dark-skinned
+polka dot
+whisker
+sclera
+disembodied
+nostrils
+v-fin
+official alternate costume
+shortstack
+symbol
+shape
+pupil
+solid circle eyes
+solid oval eyes
+otoko no ko
+bump
+panties on head
+idol
+hourglass
+cut
+headgear
+^bangs$
+^fat$
+plump
+pectorals
+digits
+shibuya 109
+spine
+skeleton
+^bone$
+skull
+(large|huge|gigantic|dark) areola
+(large|huge|gigantic|dark) nipple
+\bmale\b
+topless \b
+^legs$
+koinobori
+paper\b
+blush stickers
+no kone
+faceless
+stuffed toy
+object
+yaoi
+x-ray
+seam
+curvy
+^thighs$
+no nipples
+clothes lift
+clothes pull
+clothing aside
+pussy juice stain
+blindfold
+clothed female nude male
+clothed male nude female
+expressions
+\\\(sky\\\)
+striped
+feathered wings
+feathers
+\\\(gemstone\\\)
+\\\(jewelry\\\)
+wardrobe malfunction
+cheating
+birthday
+chinese zodiac
+year
+print
+sword of
+<color> scales
+^bald$
+completely nude
+shrug \\\(clothing\\\)
+\\\(style\\\)
+computing
+nails
+stubble
+sideburns
+^bara$
+thick eyebrows
+floating hair
+streaked hair
+maid apron
+ass visible through thighs
+hair between eyes
+blue sky
+^adapted \b
+rudder
+vegetable
+one eye covered
+clone
+thick thighs
+superhero
+testicles
+mustache
+toy
+dildo
+detached collar
+reverse bunnysuit
+reverse outfit
+maebari
+pasties
+low poly
+spikes
+old man
+tan$
+precum
+^holding$
+multicolored (eyes|hair)
+u u
+heart hands failure
+no genitals
+headband
+mother
+father
+\b son$
+\b daughter$
+\\\(food\\\)
+\\\(fruit\\\)
+\\\(expression\\\)
+night sky
+holding food
+anal beads
+eyeshadow
+vibrator
+dark persona
+barcode
+\\\(medium\\\)
+sex machine
+strap-on
+^mole on
+public indecency
+foodification
+minigirl
+food focus
+spring onion
+multiple persona
+flat chest joke
+sparkle
+oni costume
+box of chocolates
+phimosis
+<color> lips
+pee stain
+ghost
+food-themed
+no mouth
+male underwear
+tattoo
+tatoo
+long tongue
+anthropomorphic
+alien
+one-eyee
+club \\\(weapon\\\)
+spiked club
+dakimakura
+^anal$
+mask
+bunny
+surreal
+\\\(theme\\\)
+retro artstyle
+how to
+magazine cover
+cover page
+ugly
+missing limb
+spiked
+qr code
+eyepatch
+femdom
+prosthe
+mini person
+miniboy
+crossdressing
+obese
+fundoshi
+scar on face
+shochuumimai
+lip piercing
+stuffed
+makeup
+lipstick
+fascinator
+invisible man
+dot nose
+crotch
+gusset
+no pussy
+internal cumshot
+uterus
+cross-section
+ovum
+cervix
+impregnation
+sperm
+fertilization
+clitoral hood
+\. \.
+0 0
+mole
+partially colored
+implied
+veiny breasts
+zenra
+selfcest
+you're
+oyakodon
+pointless condom
+mob cap
+ribbon-trimmed headwear
+ribbon-trimmed sleeves
+red skirt
+frilled bow
+wakizashi
+circled 9
+touhou
+honkai impact
+genshin impact
+madoka magica
+arknights
+blue archive
+superman
+pokemon
+^poke
+poke ball
+fate
+triangular headpiece
+gohei
+hakurei
+hair tubes
+umamusume
+neck bell
+kantai collection
+azur lane
+evangelion
+shoujo kitou-chuu
+tate eboshi
+\bschool uniform$
+red bowtie
+red vest
+yellow ascot
+qingxin flower
+software
+imitation
+dark elf
+character
+creature
+monster
+bestiality
+fluffy
+furry
+taur
+kitsune
+okemon
+animal
+virtual youtuber
+chibi
+goblin
+androgynous
+futa
+futanari
+tentacle
+slime
+pig
+fox
+rabbit
+^cat
+cat$
+dog
+cow
+mouse
+fish
+horse
+tiger
+^tail
+\b tail$
+bug
+\bfur$
+claws
+tusks
+^oni$
+frog
+interspecies
+interracial
+genderswap
+ambiguous gender
+penguin
+wolf
+dragon
+monkey
+\bboy$
+\bear$
+guro
+tailjob
+calico
+kemonomimi mode
+\b ears$
+ear cover
+wings
+breastplate
+armor
+^mecha$
+mecha musume
+robot
+mobile suit
+weapon
+jiangshi
+ofuda
+orc
+bird
+^owl$
+beak
+mecha focus
+science fiction
+gattai
+mechanical
+^hairy$
+leg hair
+facial hair
+chest hair
+^beard$
+goatee
+multiple tails
+shiba inu
+grasshopper
+hitodama
+turtle shell
+fang
+antennae
+paw
+harpy
+huge testicle
+erection under clothes
+mermaid
+fins$
+gills
+octopus
+scales
+lamia
+zombie
+giantess
+giant
+crow
+puppy
+shark
+\b girl$
+kanabou
+personification
+digitigrade
+chimera
+furrification
+talons
+sphinx
+hooves
+snake
+webbed
+merman
+sharp teeth
+eldritch abomination
+flesh
+golem
+vampire
+organ
+petrification
+perineum
+foreskin
+newhalf
+artificial vagina
+android
+penises touching
+penis size difference
+skelet
+mechanization
+hole
+humanization
+cyclops
+eyeball
+tomboy
+intestines
+brain
+demon
+corpse
+happy
+open mouth
+hand fan
+japanese clothes
+chinese clothes
+fur trim
+^hat ornament$
+^oral$
+plaid clothes
+open clothes
+handgun
+^off shoulder$
+^puffy sleeves$
+black leoard
+^hat$
+^gesture$
+covering privates
+multicolored clothes
+smartphone
+^food$
+hanetsuki
+facial mark
+hand under clothes
+^shoes$
+expressionless
+lolita fashion
+only$
+musical note
+smoke
+folded fan
+holding clothes
+old woman
+mascara
+female pubic hair
+incoming mail
+maid day
+nose blush
+bound torso
+pom pom \\\(cheerleading\\\)
+fellatio
+irrumatio
+fingering through clothes
+beads
+unworn clothes
+frills
+lace trim
+ribbon trim
+footwear
+legwear
+mixed-sex bathing
+clothe$
+drebe
+dreft
+sleeve sleeves
+dre$
+failure penguin
