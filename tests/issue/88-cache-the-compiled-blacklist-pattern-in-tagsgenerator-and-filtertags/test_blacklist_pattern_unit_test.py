@@ -33,7 +33,9 @@ def test_second_call_does_not_read_wildcards_again(tags_module, yaml_loads, blac
 @pytest.mark.parametrize("blacklist", BLACKLISTS)
 def test_pattern_matches_uncached_computation(tags_module, blacklist):
     cached = tags_module.blacklist_pattern(blacklist)
-    uncached = getattr(tags_module.blacklist_pattern, "__wrapped__", tags_module.blacklist_pattern)(blacklist)
+    uncached = getattr(
+        tags_module.blacklist_pattern, "__wrapped__", tags_module.blacklist_pattern
+    )(blacklist)
     assert cached == uncached
 
 
