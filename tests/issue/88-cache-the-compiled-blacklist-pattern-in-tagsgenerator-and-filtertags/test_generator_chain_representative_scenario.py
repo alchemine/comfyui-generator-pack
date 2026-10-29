@@ -43,5 +43,8 @@ def test_repeat_chain_three_times(generate, text):
         times.append(time.perf_counter() - t0)
     differing = sum(o != outs[0] for o in outs[1:])
     logging.getLogger(__name__).warning(
-        "chain x3 | differing=%d | %.3fs %.3fs %.3fs | %s", differing, *times, text[-60:]
+        "chain x3 | differing=%d | %.3fs %.3fs %.3fs | %s",
+        differing,
+        *times,
+        text[-60:],
     )

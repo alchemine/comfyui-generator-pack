@@ -40,8 +40,18 @@ WIDGETS = (
 
 # the three generators of the workflow, in chain order
 CHAIN = (
-    dict(n=5, auto=True, rating="all", lift_threshold=0.1, background=True, bg_details=True, framing=True),
-    dict(n=10, auto=False, rating="all", lift_threshold=0.2, pose=True, expressions=True),
+    dict(
+        n=5,
+        auto=True,
+        rating="all",
+        lift_threshold=0.1,
+        background=True,
+        bg_details=True,
+        framing=True,
+    ),
+    dict(
+        n=10, auto=False, rating="all", lift_threshold=0.2, pose=True, expressions=True
+    ),
     dict(n=10, auto=True, rating="all", lift_threshold=0.2, body=True, clothes=True),
 )
 

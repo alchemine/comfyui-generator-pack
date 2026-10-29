@@ -33,6 +33,10 @@ def test_second_run_skips_the_blacklist_rebuild(generate, yaml_loads, text):
 
 @pytest.mark.parametrize("text", PROMPTS)
 def test_same_seed_gives_same_tags(generate, text):
-    first = generate(text, 7, n=10, auto=False, lift_threshold=0.2, pose=True, expressions=True)
-    second = generate(text, 7, n=10, auto=False, lift_threshold=0.2, pose=True, expressions=True)
+    first = generate(
+        text, 7, n=10, auto=False, lift_threshold=0.2, pose=True, expressions=True
+    )
+    second = generate(
+        text, 7, n=10, auto=False, lift_threshold=0.2, pose=True, expressions=True
+    )
     assert first == second
